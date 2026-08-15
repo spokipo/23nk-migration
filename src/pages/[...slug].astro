@@ -1,0 +1,18 @@
+---
+import AppRouter from "@/components/Router";
+import "@/styles/global.css";
+---
+
+<html lang="en" class="w-full h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>23nk</title>
+  </head>
+
+  <body class="w-full h-full">
+    <div id="root" class="w-full h-full">
+      <AppRouter client:only="react" />
+    </div>
+  </body>
+</html>
