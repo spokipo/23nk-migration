@@ -1,0 +1,5 @@
+{
+  "name": "23nk-main",
+  "compatibility_date": "2026-08-15",
+  "main": "./dist/_worker.js/index.js"
+}
