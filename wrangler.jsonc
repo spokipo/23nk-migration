@@ -7,7 +7,8 @@
     "binding": "ASSETS",
     "directory": "./dist"
   },
-  "observability": {
-    "enabled": true
+  "vars": {
+    "PAYPAL_CLIENT_ID": "AWanTMhgrXAJXCt7xi7DjZc4r_IhRO-VHFPXURWMk2Ud-Movu0MkH06l7sADFxT4vHLDsb6yVz3Fxw3K",
+    "PAYPAL_ENV": "sandbox"
   }
 }

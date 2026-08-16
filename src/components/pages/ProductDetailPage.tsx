@@ -21,6 +21,7 @@ import { CheckCircle2, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -36,6 +37,9 @@ export default function ProductDetailPage() {
 
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -69,6 +73,13 @@ export default function ProductDetailPage() {
 
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    fetch('/api/paypal/config')
+      .then((res) => res.json())
+      .then((data) => setPaypalClientId(data.clientId || null))
+      .catch(() => setPaypalClientId(null));
+  }, []);
 
   useEffect(() => {
     if (!isDialogOpen) return;
@@ -132,6 +143,8 @@ export default function ProductDetailPage() {
   const handleOpenModal = (mode: 'claim' | 'custom') => {
     setModalMode(mode);
     resetForm();
+    setShowPayment(false);
+    setPaymentError(null);
     setIsDialogOpen(true);
   };
 
@@ -141,8 +154,14 @@ export default function ProductDetailPage() {
     if (!open) {
       setTimeout(() => {
         setIsSubmittedSuccess(false);
+        setShowPayment(false);
+        setPaymentError(null);
       }, 300);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setIsSubmittedSuccess(true);
   };
 
 
@@ -279,7 +298,11 @@ export default function ProductDetailPage() {
         }
       );
 
-      setIsSubmittedSuccess(true);
+      if (modalMode === 'claim') {
+        setShowPayment(true);
+      } else {
+        setIsSubmittedSuccess(true);
+      }
     } catch (error) {
       console.error('Error submitting form:', error);
 
@@ -302,6 +325,29 @@ export default function ProductDetailPage() {
 
   return (
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
+      <style>{`
+        .modal-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.18);
+          border-radius: 9999px;
+        }
+
+        .modal-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 0, 0, 0.3);
+        }
+      `}</style>
       <Header />
 
       <main className="py-8 md:py-16">
@@ -402,7 +448,7 @@ export default function ProductDetailPage() {
                       <motion.div
                         role="dialog"
                         aria-modal="true"
-                        className="w-full max-w-[580px] max-h-[90vh] overflow-y-auto rounded-2xl border border-foreground/15 bg-background p-6 shadow-2xl"
+                        className="w-full max-w-[580px] max-h-[90vh] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-2xl"
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -412,8 +458,7 @@ export default function ProductDetailPage() {
                         }}
                         onMouseDown={(event) => event.stopPropagation()}
                       >
-
-
+                        <div className="modal-scrollbar max-h-[90vh] overflow-y-auto p-6">
                   {isSubmittedSuccess ? (
                     /* SUCCESS STATE */
                     <motion.div
@@ -437,13 +482,26 @@ export default function ProductDetailPage() {
                       </div>
 
                       <h2 className="font-heading text-2xl text-foreground">
-                        Request Received!
+                        {modalMode === 'claim'
+                          ? 'Order Confirmed!'
+                          : 'Request Received!'}
                       </h2>
 
                       <p className="font-heading text-xs md:text-sm text-foreground/75 max-w-md leading-relaxed">
-                        Thank you, {formData.fullName || 'friend'}!
-                        Your request for "{product.name}" has been
-                        received. A reply will be sent shortly.
+                        {modalMode === 'claim' ? (
+                          <>
+                            Thank you, {formData.fullName || 'friend'}! Your
+                            order for "{product.name}" has been confirmed.
+                            Your payment has been received
+                            successfully.
+                          </>
+                        ) : (
+                          <>
+                            Thank you, {formData.fullName || 'friend'}! Your
+                            request for "{product.name}" has been received. A
+                            reply will be sent shortly.
+                          </>
+                        )}
                       </p>
 
                       <div className="pt-4 w-full">
@@ -455,6 +513,115 @@ export default function ProductDetailPage() {
                           </Button>
                       </div>
                     </motion.div>
+                  ) : showPayment ? (
+                    /* PAYMENT STATE */
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <h2 className="font-heading text-xl md:text-2xl text-foreground">
+                          Payment
+                        </h2>
+
+                        <p className="font-heading text-xs md:text-sm text-foreground/70">
+                          Complete your payment to confirm the order.
+                        </p>
+                      </div>
+
+                      <div className="p-3 bg-ivory rounded-xl flex gap-3 items-center border border-foreground/10">
+                        <Image
+                          src={product.mainImage || ''}
+                          alt={product.name}
+                          width={60}
+                          className="w-14 h-14 object-cover rounded-lg shrink-0"
+                        />
+
+                        <div>
+                          <p className="font-heading text-sm text-foreground font-semibold">
+                            {product.name}
+                          </p>
+
+                          <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">
+                            ${product.price?.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {paymentError && (
+                        <p className="font-heading text-xs text-red-500">
+                          {paymentError}
+                        </p>
+                      )}
+
+                      {paypalClientId ? (
+                        <PayPalScriptProvider
+                          options={{
+                            clientId: paypalClientId,
+                            currency: 'USD',
+                          }}
+                        >
+                          <PayPalButtons
+                            style={{ layout: 'vertical', shape: 'pill' }}
+                            forceReRender={[product._id, product.price]}
+                            createOrder={async () => {
+                              setPaymentError(null);
+
+                              const res = await fetch('/api/paypal/create-order', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  productId: product._id,
+                                  productName: product.name,
+                                  price: product.price,
+                                }),
+                              });
+
+                              const data = await res.json();
+
+                              if (!res.ok) {
+                                setPaymentError(
+                                  'Could not start PayPal checkout. Please try again.'
+                                );
+                                throw new Error(data.error || 'create-order failed');
+                              }
+
+                              return data.id;
+                            }}
+                            onApprove={async (data) => {
+                              const res = await fetch('/api/paypal/capture-order', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ orderID: data.orderID }),
+                              });
+
+                              if (!res.ok) {
+                                setPaymentError(
+                                  'Payment could not be completed. Please try again.'
+                                );
+                                return;
+                              }
+
+                              handlePaymentSuccess();
+                            }}
+                            onError={() => {
+                              setPaymentError(
+                                'PayPal checkout error. Please try again.'
+                              );
+                            }}
+                          />
+                        </PayPalScriptProvider>
+                      ) : (
+                        <div className="py-4 flex justify-center">
+                          <LoadingSpinner />
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => setShowPayment(false)}
+                        className="w-full text-center font-heading text-xs text-foreground/50 hover:text-foreground py-2 transition-colors"
+                      >
+                        Back
+                      </button>
+                    </div>
                   ) : (
                     <>
                       <div className="space-y-2">
@@ -983,6 +1150,7 @@ export default function ProductDetailPage() {
                       </form>
                     </>
                   )}
+                        </div>
 
                       </motion.div>
                     </motion.div>
