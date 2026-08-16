@@ -38,7 +38,7 @@ export default function PrivacyPolicyPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                23NK respects the privacy of its customers and website visitors. This Privacy Policy explains how personal information is collected, used, and safeguarded when visiting the website, submitting custom measurements, or ordering upcycled garments.
+                I23NK respects the privacy of its customers and website visitors. This Privacy Policy explains how personal information is collected, used, and safeguarded when visiting the website, submitting custom measurements, or ordering upcycled garments.
               </p>
             </motion.section>
 
@@ -160,7 +160,7 @@ export default function PrivacyPolicyPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                Payment details may be exchanged directly between the customer and 23NK using the payment method agreed upon for the order. Full payment card numbers, security codes, and other sensitive payment credentials are not intentionally stored by 23NK.
+                Payment details may be exchanged directly between the customer and I23NK using the payment method agreed upon for the order. Full payment card numbers, security codes, and other sensitive payment credentials are not intentionally stored by I23NK.
               </p>
             </motion.section>
 

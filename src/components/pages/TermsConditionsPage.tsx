@@ -38,11 +38,11 @@ export default function TermsConditionsPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                23NK is an independent, artisanal upcycling brand. All garments created and displayed on the website are individually handcrafted using authentic pre-owned (second-hand) vintage clothing, textiles, and materials acquired through legitimate resale and second-hand channels.
+                I23NK is an independent, artisanal upcycling brand. All garments created and displayed on the website are individually handcrafted using authentic pre-owned (second-hand) vintage clothing, textiles, and materials acquired through legitimate resale and second-hand channels.
               </p>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                23NK is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any of the original brand owners, fashion houses, or trademark holders whose logos, patterns, or other brand elements may be visible on upcycled pieces. Any visible logos or brand elements are part of the original repurposed material and do not indicate any affiliation, authorization, endorsement, or collaboration with the respective trademark owners. All brand names and trademarks remain the sole property of their respective owners.
+                I23NK is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any of the original brand owners, fashion houses, or trademark holders whose logos, patterns, or other brand elements may be visible on upcycled pieces. Any visible logos or brand elements are part of the original repurposed material and do not indicate any affiliation, authorization, endorsement, or collaboration with the respective trademark owners. All brand names and trademarks remain the sole property of their respective owners.
               </p>
             </motion.section>
 
@@ -68,7 +68,7 @@ export default function TermsConditionsPage() {
               </p>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                For custom-tailored orders, measurements must be provided accurately by the customer. 23NK is not responsible for improper fit resulting from inaccurate or incorrectly submitted measurements.
+                For custom-tailored orders, measurements must be provided accurately by the customer. I23NK is not responsible for improper fit resulting from inaccurate or incorrectly submitted measurements.
               </p>
             </motion.section>
 
@@ -134,7 +134,7 @@ export default function TermsConditionsPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                Orders may be arranged through direct consultation, email, direct messaging, or other communication channels designated by 23NK. Order details, including measurements, specifications, pricing, and other relevant information, should be confirmed by the customer before payment. Production of custom-tailored garments begins only after payment has been confirmed.
+                Orders may be arranged through direct consultation, email, direct messaging, or other communication channels designated by I23NK. Order details, including measurements, specifications, pricing, and other relevant information, should be confirmed by the customer before payment. Production of custom-tailored garments begins only after payment has been confirmed.
               </p>
             </motion.section>
 
@@ -170,7 +170,7 @@ export default function TermsConditionsPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                These Terms and Conditions shall be governed by and construed in accordance with the applicable laws governing 23NK and its commercial activities.
+                These Terms and Conditions shall be governed by and construed in accordance with the applicable laws governing I23NK and its commercial activities.
               </p>
             </motion.section>
 

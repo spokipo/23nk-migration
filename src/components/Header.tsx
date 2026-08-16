@@ -32,7 +32,7 @@ export default function Header() {
     >
       <div className="max-w-[120rem] mx-auto px-6 md:px-20">
         <div className="flex items-center justify-between h-16 md:h-24">
-          <Link to="/" className="font-heading text-xl md:text-3xl text-foreground font-bold uppercase">{"23NK"}</Link>
+          <Link to="/" className="font-heading text-xl md:text-3xl text-foreground font-bold uppercase">{"I23NK"}</Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-12">
