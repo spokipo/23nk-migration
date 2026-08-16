@@ -12,7 +12,9 @@ export default defineConfig({
     react(),
   ],
 
-  adapter: cloudflare(),
+  adapter: cloudflare({
+  platformProxy: true
+}),
 
   vite: {
     cacheDir: "node_modules/.cache/.vite",
