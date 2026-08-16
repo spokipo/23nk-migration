@@ -1,6 +1,6 @@
 {
   "name": "23nk-migration",
-  "main": "./dist/_worker.js",
+  "main": "./dist/_worker.js/index.js",
   "compatibility_date": "2026-08-15",
   "compatibility_flags": [
     "nodejs_compat"
