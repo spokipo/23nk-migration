@@ -569,8 +569,6 @@ export default function ProductDetailPage() {
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                   productId: product._id,
-                                  productName: product.name,
-                                  price: product.price,
                                 }),
                               });
 

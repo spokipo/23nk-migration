@@ -3,20 +3,55 @@ import {
   getPayPalAccessToken,
   getPayPalBaseUrl,
 } from '@/integrations/paypal/client';
+import { BaseCrudService } from '@/integrations/cms/service';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   const env = (locals as any).runtime.env;
 
   try {
-    const { productId, productName, price } =
-      await request.json();
+    const { productId } = await request.json();
 
-    const amount = Number(price);
-
-    if (!productId || !amount || amount <= 0) {
+    if (!productId) {
       return new Response(
         JSON.stringify({
-          error: 'Invalid product or price',
+          error: 'Invalid product',
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    // Get the product directly from Wix CMS.
+    // The client-provided price is intentionally not trusted.
+    const product = await BaseCrudService.getById<any>(
+      'products',
+      String(productId)
+    );
+
+    if (!product) {
+      return new Response(
+        JSON.stringify({
+          error: 'Product not found',
+        }),
+        {
+          status: 404,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    const amount = Number(product.price);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid product price',
         }),
         {
           status: 400,
@@ -42,8 +77,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
           intent: 'CAPTURE',
           purchase_units: [
             {
-              reference_id: String(productId),
-              description: String(productName || '').slice(
+              reference_id: String(product._id),
+              description: String(product.name || '').slice(
                 0,
                 127
               ),
