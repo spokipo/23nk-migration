@@ -1,4 +1,4 @@
-import { wixClient } from "../wix-client";
+﻿import { wixClient } from "../wix-client";
 import { WixDataItem } from ".";
 
 /**
@@ -71,8 +71,8 @@ export class BaseCrudService {
 
         itemWithRefs[refField] = result.items;
         itemWithRefs._refMeta[refField] = {
-          totalCount: result.totalCount ?? result.wixClient.items.length,
-          returnedCount: result.wixClient.items.length,
+          totalCount: result.totalCount ?? result.items.length,
+          returnedCount: result.items.length,
           hasMore: result.hasNext()
         };
       } catch {
@@ -143,7 +143,7 @@ export class BaseCrudService {
 
       return {
         items: result.items as T[],
-        totalCount: result.totalCount ?? result.wixClient.items.length,
+        totalCount: result.totalCount ?? result.items.length,
         hasNext,
         currentPage: Math.floor(skip / limit),
         pageSize: limit,
@@ -179,7 +179,7 @@ export class BaseCrudService {
       }
 
       const result = await query.find();
-      if (result.wixClient.items.length === 0) return null;
+      if (result.items.length === 0) return null;
 
       // Populate multi-refs using queryReferenced (only for single item - efficient)
       return this.populateMultiRefs<T>(collectionId, result.items[0] as T, multiRefs);
@@ -288,3 +288,5 @@ export class BaseCrudService {
   }
 
 }
+
+
