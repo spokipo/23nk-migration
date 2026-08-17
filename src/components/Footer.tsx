@@ -55,7 +55,7 @@ export default function Footer() {
 
         <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-foreground/10 text-center">
           <p className="font-heading text-xs md:text-sm text-foreground/60">
-            © {new Date().getFullYear()} 23NK. All rights reserved. <Link to="/privacy-policy" className="hover:text-soft-gold transition-colors">Privacy Policy</Link> · <Link to="/terms-conditions" className="hover:text-soft-gold transition-colors">Terms & Conditions</Link>
+            © {new Date().getFullYear()} I23NK. All rights reserved. <Link to="/privacy-policy" className="hover:text-soft-gold transition-colors">Privacy Policy</Link> · <Link to="/terms-conditions" className="hover:text-soft-gold transition-colors">Terms & Conditions</Link>
           </p>
         </div>
 

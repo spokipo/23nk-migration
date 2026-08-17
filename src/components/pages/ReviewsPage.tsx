@@ -24,7 +24,6 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Reviews | null>(null);
-  const [imageRatio, setImageRatio] = useState<number | null>(null);
   const [isReviewImageLoading, setIsReviewImageLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
@@ -42,7 +41,6 @@ export default function ReviewsPage() {
   useEffect(() => {
     const fetchReviews = async () => {
       setIsLoading(true);
-
       try {
         const result = await BaseCrudService.getAll<Reviews>('reviews');
         setReviews(result.items || []);
@@ -100,19 +98,16 @@ export default function ReviewsPage() {
       contactDetails: '',
       message: '',
     });
-
     setIsSubmittedSuccess(false);
   };
 
   const handleOpenReview = (review: Reviews) => {
     setSelectedReview(review);
-    setImageRatio(null);
     setIsReviewImageLoading(true);
   };
 
   const handleCloseReview = () => {
     setSelectedReview(null);
-    setImageRatio(null);
     setIsReviewImageLoading(false);
   };
 
@@ -129,11 +124,9 @@ export default function ReviewsPage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-
     if (!selectedReview) return;
 
     setIsSubmitting(true);
-
     const productName = getProductName(selectedReview);
 
     try {
@@ -158,25 +151,11 @@ export default function ReviewsPage() {
         Price: 'Price upon request',
       };
 
-      if (formData.fullName) {
-        emailData['Customer Name'] = formData.fullName;
-      }
-
-      if (formData.country) {
-        emailData.Country = formData.country;
-      }
-
-      if (formData.preferredContactMethod) {
-        emailData['Contact Method'] = formData.preferredContactMethod;
-      }
-
-      if (formData.contactDetails) {
-        emailData['Contact Details'] = formData.contactDetails;
-      }
-
-      if (formData.message) {
-        emailData['Message / Notes'] = formData.message;
-      }
+      if (formData.fullName) emailData['Customer Name'] = formData.fullName;
+      if (formData.country) emailData.Country = formData.country;
+      if (formData.preferredContactMethod) emailData['Contact Method'] = formData.preferredContactMethod;
+      if (formData.contactDetails) emailData['Contact Details'] = formData.contactDetails;
+      if (formData.message) emailData['Message / Notes'] = formData.message;
 
       await fetch(
         'https://formsubmit.co/ajax/4beb55a3be4e0d00a05176afdef4a527',
@@ -193,7 +172,6 @@ export default function ReviewsPage() {
       setIsSubmittedSuccess(true);
     } catch (error) {
       console.error('Error submitting form:', error);
-
       toast({
         title: 'Error',
         description: 'Failed to send request. Please try again.',
@@ -208,13 +186,12 @@ export default function ReviewsPage() {
       <Header />
 
       <main className="py-6 md:py-12">
-        <div className="max-w-[120rem] mx-auto px-4 md:px-20">
+        <div className="mx-auto max-w-[120rem] px-4 md:px-20">
           <div className="mb-6 flex flex-col justify-between border-b border-foreground/10 pb-4 text-center md:mb-10 md:flex-row md:items-end md:text-left">
             <div>
               <h1 className="font-heading text-2xl text-foreground md:text-4xl">
                 Customer Gallery
               </h1>
-
               <p className="mt-1 font-paragraph text-xs text-foreground/60 md:text-sm">
                 Real fits & custom styling from the community
               </p>
@@ -282,7 +259,7 @@ export default function ReviewsPage() {
 
       <AnimatePresence>
         {selectedReview && !isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-10">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -291,28 +268,27 @@ export default function ReviewsPage() {
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
 
+            {/* Модальное окно с равными пропорциями 50%/50% */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative z-10 grid w-full max-w-5xl grid-cols-1 overflow-y-auto rounded-2xl border border-foreground/10 bg-background shadow-2xl max-h-[calc(100dvh-1.5rem)] md:max-h-[90vh] md:grid-cols-[auto_minmax(20rem,28rem)] md:overflow-hidden"
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-2xl md:flex-row"
             >
               <button
                 onClick={handleCloseReview}
-                className="absolute top-3 right-3 z-20 rounded-full bg-black/40 p-2 text-white transition-colors hover:bg-black/60"
+                className="absolute right-3 top-3 z-30 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
                 aria-label="Close preview"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
 
-              <div
-                className="relative flex h-[42dvh] w-full max-h-[42dvh] items-center justify-center overflow-hidden bg-ivory md:h-[min(78vh,42rem)] md:max-h-none md:w-auto"
-                style={{ aspectRatio: imageRatio ?? 3 / 4 }}
-              >
+              {/* Левая часть — фото (50% ширины) */}
+              <div className="relative aspect-[3/4] w-full bg-ivory/50 md:w-1/2">
                 {isReviewImageLoading && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-ivory">
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ivory">
                     <LoadingSpinner />
-                    <span className="font-heading text-[10px] uppercase tracking-widest text-foreground/45">
+                    <span className="font-heading text-[10px] uppercase tracking-widest text-foreground/40">
                       Loading photo
                     </span>
                   </div>
@@ -322,40 +298,31 @@ export default function ReviewsPage() {
                   src={getImageUrl(selectedReview)}
                   alt={selectedReview.reviewTitle || 'Review'}
                   width={1200}
-                  onLoad={(event) => {
-                    const image = event.currentTarget;
-
-                    if (image.naturalWidth && image.naturalHeight) {
-                      setImageRatio(image.naturalWidth / image.naturalHeight);
-                    }
-
-                    setIsReviewImageLoading(false);
-                  }}
+                  onLoad={() => setIsReviewImageLoading(false)}
                   onError={() => setIsReviewImageLoading(false)}
-                  className={`h-full w-full object-contain transition-opacity duration-300 ${
+                  className={`h-full w-full object-cover ${
                     isReviewImageLoading ? 'opacity-0' : 'opacity-100'
                   }`}
                 />
               </div>
 
-              <div className="flex min-w-0 flex-col justify-between p-5 sm:p-6 md:p-8">
-                <div>
+              {/* Правая часть — текст (симметричные 50% ширины) */}
+              <div className="flex w-full flex-col justify-between overflow-y-auto p-6 md:w-1/2 md:p-8">
+                <div className="space-y-3">
                   <span className="font-heading text-xs uppercase tracking-widest text-soft-gold">
                     Customer Look
                   </span>
 
-                  <h2 className="mb-4 mt-2 font-heading text-xl text-foreground md:text-2xl">
+                  <h2 className="font-heading text-xl text-foreground md:text-2xl">
                     {selectedReview.reviewTitle || 'Custom Handcrafted Piece'}
                   </h2>
 
-                  <p className="mb-6 font-paragraph text-xs leading-relaxed text-foreground/80 md:text-sm">
-                    Like this style? Every piece is handmade and unique. A
-                    custom remake can be requested based on the selected style
-                    and individual measurements.
+                  <p className="font-paragraph text-xs leading-relaxed text-foreground/80 md:text-sm">
+                    Like this style? Every piece is handmade and unique. A custom remake can be requested based on the selected style and individual measurements.
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-3 border-t border-foreground/10 pt-4">
+                <div className="mt-6 flex flex-col gap-3 border-t border-foreground/10 pt-4">
                   <Button
                     onClick={() => handleOpenForm(selectedReview)}
                     className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md transition-all hover:bg-soft-gold hover:text-white"
@@ -378,30 +345,30 @@ export default function ReviewsPage() {
 
       <AnimatePresence>
         {isFormOpen && selectedReview && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-10">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleCloseForm}
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-visible rounded-2xl border border-foreground/10 bg-background shadow-2xl"
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative z-10 flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-2xl"
             >
               <button
                 onClick={handleCloseForm}
-                className="absolute right-3 top-3 z-20 rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20"
+                className="absolute right-3 top-3 z-30 rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20"
                 aria-label="Close form"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              <div className="max-h-[90vh] overflow-y-auto p-6 md:p-8">
+              <div className="overflow-y-auto p-6 md:p-8">
                 {isSubmittedSuccess ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -417,9 +384,7 @@ export default function ReviewsPage() {
                     </h2>
 
                     <p className="max-w-md font-heading text-xs leading-relaxed text-foreground/75 md:text-sm">
-                      Thank you, {formData.fullName || 'there'}. The Custom
-                      Order request for &quot;{getProductName(selectedReview)}
-                      &quot; has been received. A reply will be sent shortly.
+                      Thank you, {formData.fullName || 'there'}. The Custom Order request for &quot;{getProductName(selectedReview)}&quot; has been received. A reply will be sent shortly.
                     </p>
 
                     <Button
@@ -455,9 +420,7 @@ export default function ReviewsPage() {
                     </h2>
 
                     <p className="mb-4 font-heading text-xs text-foreground/70 md:text-sm">
-                      Leave contact details to request a custom remake of this
-                      piece. A fitting & measurement guide will be provided
-                      after the request.
+                      Leave contact details to request a custom remake of this piece. A fitting & measurement guide will be provided after the request.
                     </p>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -536,12 +499,8 @@ export default function ReviewsPage() {
                             position="popper"
                             sideOffset={4}
                           >
-                            <SelectItem value="instagram">
-                              Instagram
-                            </SelectItem>
-                            <SelectItem value="whatsapp">
-                              WhatsApp
-                            </SelectItem>
+                            <SelectItem value="instagram">Instagram</SelectItem>
+                            <SelectItem value="whatsapp">WhatsApp</SelectItem>
                             <SelectItem value="email">Email</SelectItem>
                           </SelectContent>
                         </Select>
@@ -553,12 +512,9 @@ export default function ReviewsPage() {
                             htmlFor="contactDetails"
                             className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
                           >
-                            {formData.preferredContactMethod === 'instagram' &&
-                              'Instagram Handle *'}
-                            {formData.preferredContactMethod === 'whatsapp' &&
-                              'WhatsApp Number *'}
-                            {formData.preferredContactMethod === 'email' &&
-                              'Email Address *'}
+                            {formData.preferredContactMethod === 'instagram' && 'Instagram Handle *'}
+                            {formData.preferredContactMethod === 'whatsapp' && 'WhatsApp Number *'}
+                            {formData.preferredContactMethod === 'email' && 'Email Address *'}
                           </Label>
 
                           <Input
@@ -574,8 +530,7 @@ export default function ReviewsPage() {
                             placeholder={
                               formData.preferredContactMethod === 'instagram'
                                 ? '@handle'
-                                : formData.preferredContactMethod ===
-                                    'whatsapp'
+                                : formData.preferredContactMethod === 'whatsapp'
                                   ? '+1 234 567 890'
                                   : 'email@example.com'
                             }
