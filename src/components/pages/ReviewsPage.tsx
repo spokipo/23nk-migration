@@ -17,7 +17,7 @@ import { ContactFormSubmissions, Reviews } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function ReviewsPage() {
@@ -28,6 +28,13 @@ export default function ReviewsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fullscreen Zoom Lightbox
+  const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
+  const [isZoomImageLoading, setIsZoomImageLoading] = useState(true);
+
+  // Responsive Animation Trigger
+  const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -37,6 +44,15 @@ export default function ReviewsPage() {
     contactDetails: '',
     message: '',
   });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -55,23 +71,23 @@ export default function ReviewsPage() {
   }, []);
 
   useEffect(() => {
-    if (!selectedReview) return;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
+    if (selectedReview || isFullscreenZoom) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = '';
     };
-  }, [selectedReview]);
+  }, [selectedReview, isFullscreenZoom]);
 
   const getImageUrl = (review: any) => {
     const rawImage =
-      review.reviewImage ||
-      review.ReviewImage ||
-      review.image ||
-      review.photo ||
-      review.src ||
+      review?.reviewImage ||
+      review?.ReviewImage ||
+      review?.image ||
+      review?.photo ||
+      review?.src ||
       '';
 
     if (typeof rawImage === 'object' && rawImage !== null) {
@@ -83,9 +99,9 @@ export default function ReviewsPage() {
 
   const getProductName = (review: any) => {
     return (
-      review.productName ||
-      review.reviewTitle ||
-      review.title ||
+      review?.productName ||
+      review?.reviewTitle ||
+      review?.title ||
       'Custom Remake'
     );
   };
@@ -109,6 +125,7 @@ export default function ReviewsPage() {
   const handleCloseReview = () => {
     setSelectedReview(null);
     setIsReviewImageLoading(false);
+    setIsFullscreenZoom(false);
   };
 
   const handleOpenForm = (review: Reviews) => {
@@ -120,6 +137,11 @@ export default function ReviewsPage() {
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setIsSubmittedSuccess(false);
+  };
+
+  const handleOpenZoom = () => {
+    setIsZoomImageLoading(true);
+    setIsFullscreenZoom(true);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -181,8 +203,11 @@ export default function ReviewsPage() {
     }
   };
 
-  // Параметры анимации для нативного фила "шторки"
-  const springTransition = { type: 'spring', damping: 25, stiffness: 300 };
+  const modalAnimationVariants = {
+    initial: isMobile ? { y: '100%', opacity: 1 } : { opacity: 0, scale: 0.96, y: 8 },
+    animate: isMobile ? { y: 0, opacity: 1 } : { opacity: 1, scale: 1, y: 0 },
+    exit: isMobile ? { y: '100%', opacity: 1 } : { opacity: 0, scale: 0.96, y: 8 },
+  };
 
   return (
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
@@ -230,8 +255,8 @@ export default function ReviewsPage() {
                       <Image
                         src={imageUrl}
                         alt={review.reviewTitle || 'Customer Review'}
-                        width={600}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        fill
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                       />
 
                       <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
@@ -260,179 +285,200 @@ export default function ReviewsPage() {
         </div>
       </main>
 
-      {/* --- PREVIEW MODAL (С гибридной навигацией Шторка/Центр) --- */}
+      {/* --- PREVIEW MODAL --- */}
       <AnimatePresence>
         {selectedReview && !isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4 md:p-8">
-            {/* Backdrop */}
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleCloseReview}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
             />
 
-            {/* Modal Container */}
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={springTransition}
-              className="relative z-10 flex h-[90dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-4xl sm:flex-row sm:rounded-2xl"
+              variants={modalAnimationVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={
+                isMobile
+                  ? { type: 'spring', damping: 25, stiffness: 300 }
+                  : { duration: 0.25 }
+              }
+              className="relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-foreground/10 bg-background shadow-2xl md:max-h-[85vh] md:max-w-2xl md:rounded-2xl"
             >
-              {/* Пилл (ручка) для свайпа на мобилках */}
-              <div className="absolute left-1/2 top-3 z-30 h-1.5 w-10 -translate-x-1/2 rounded-full bg-foreground/20 sm:hidden" />
+              {/* Mobile Drag Indicator */}
+              <div className="flex w-full shrink-0 justify-center pt-3 pb-1 md:hidden">
+                <div className="h-1.5 w-12 rounded-full bg-foreground/20" />
+              </div>
 
-              {/* Крестик на десктопе */}
+              {/* Close Button (Только для ПК) */}
               <button
                 onClick={handleCloseReview}
-                className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
+                className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 md:block"
                 aria-label="Close preview"
               >
                 <X className="h-4 w-4" />
               </button>
 
-              {/* Скроллируемая область: на мобилке фото+текст, на десктопе разделено */}
-              <div className="flex flex-1 flex-col overflow-y-auto sm:flex-row sm:overflow-hidden">
-                
-                {/* Картинка */}
-                <div className="relative aspect-[3/4] w-full shrink-0 bg-ivory/50 sm:h-[85vh] sm:w-1/2 sm:aspect-auto">
+              <div className="flex w-full flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+                {/* Left: Image (Full cover filling 50%) with Zoom trigger */}
+                <div
+                  className="group/zoom relative aspect-[3/4] w-full shrink-0 cursor-zoom-in overflow-hidden bg-ivory/50 md:w-1/2"
+                  onClick={handleOpenZoom}
+                >
                   {isReviewImageLoading && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ivory">
                       <LoadingSpinner />
-                      <span className="font-heading text-[10px] uppercase tracking-widest text-foreground/40">
-                        Loading photo
-                      </span>
                     </div>
                   )}
+
                   <Image
                     src={getImageUrl(selectedReview)}
                     alt={selectedReview.reviewTitle || 'Review'}
                     fill
                     onLoad={() => setIsReviewImageLoading(false)}
                     onError={() => setIsReviewImageLoading(false)}
-                    className={`object-contain transition-opacity duration-300 sm:p-4 ${
+                    className={`h-full w-full object-cover transition-all duration-700 group-hover/zoom:scale-105 ${
                       isReviewImageLoading ? 'opacity-0' : 'opacity-100'
                     }`}
                   />
+
+                  {/* Zoom Hint Icon */}
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover/zoom:opacity-100">
+                    <div className="translate-y-2 transform rounded-full bg-black/60 p-2.5 text-white backdrop-blur-sm transition-all duration-300 group-hover/zoom:translate-y-0">
+                      <ZoomIn className="h-5 w-5" />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Контент */}
-                <div className="flex flex-col p-6 pt-8 sm:w-1/2 sm:overflow-y-auto sm:p-8">
-                  <div className="space-y-3">
+                {/* Right: Info & Desktop CTA */}
+                <div className="flex w-full shrink-0 flex-col p-6 md:w-1/2 md:overflow-y-auto md:p-8 md:justify-between">
+                  <div className="space-y-3 pb-4 md:pb-0">
                     <span className="font-heading text-xs uppercase tracking-widest text-soft-gold">
                       Customer Look
                     </span>
+
                     <h2 className="font-heading text-xl text-foreground md:text-2xl">
                       {selectedReview.reviewTitle || 'Custom Handcrafted Piece'}
                     </h2>
+
                     <p className="font-paragraph text-xs leading-relaxed text-foreground/80 md:text-sm">
                       Like this style? Every piece is handmade and unique. A custom remake can be requested based on the selected style and individual measurements.
                     </p>
                   </div>
 
-                  {/* Кнопки на десктопе (снизу контента) */}
-                  <div className="mt-8 hidden flex-col gap-3 border-t border-foreground/10 pt-6 sm:flex">
+                  {/* Desktop CTA (скрыто на мобильных) */}
+                  <div className="mt-6 hidden flex-col gap-3 border-t border-foreground/10 pt-4 md:flex">
                     <Button
                       onClick={() => handleOpenForm(selectedReview)}
                       className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md transition-all hover:bg-soft-gold hover:text-white"
                     >
                       Custom Order
-                    </Button>
-                    <button
-                      onClick={handleCloseReview}
-                      className="w-full py-1 text-center font-heading text-xs text-foreground/50 transition-colors hover:text-foreground"
-                    >
-                      Close Preview
-                    </button>
+                    </Button> 
                   </div>
                 </div>
               </div>
 
-              {/* STICKY Кнопки на мобилке (зафиксированы снизу) */}
-              <div className="shrink-0 border-t border-foreground/10 bg-background/90 p-4 pb-8 backdrop-blur-md sm:hidden">
+              {/* Sticky Mobile CTA */}
+              <div className="shrink-0 border-t border-foreground/10 bg-background p-4 pb-safe space-y-2 md:hidden">
                 <Button
                   onClick={() => handleOpenForm(selectedReview)}
-                  className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md"
+                  className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md transition-all hover:bg-soft-gold hover:text-white"
                 >
                   Custom Order
                 </Button>
                 <button
-                  onClick={handleCloseReview}
-                  className="mt-3 w-full py-1 text-center font-heading text-xs text-foreground/50"
-                >
-                  Close Preview
-                </button>
+  type="button"
+  onClick={handleCloseReview}
+  className="w-full py-2 text-center font-heading text-xs text-foreground/50 hover:text-foreground transition-colors"
+>
+  Close
+</button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      {/* --- FORM MODAL (Также с логикой шторки) --- */}
+      {/* --- FORM MODAL --- */}
       <AnimatePresence>
         {isFormOpen && selectedReview && (
-          <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 md:items-center md:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleCloseForm}
-              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm"
             />
 
             <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={springTransition}
-              className="relative z-10 flex h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl"
+              variants={modalAnimationVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={
+                isMobile
+                  ? { type: 'spring', damping: 25, stiffness: 300 }
+                  : { duration: 0.25 }
+              }
+              className="relative z-10 flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-[28px] border border-foreground/10 bg-background shadow-2xl md:max-h-[90vh] md:max-w-md md:rounded-2xl"
             >
-              {/* Пилл (ручка) */}
-              <div className="absolute left-1/2 top-3 z-30 h-1.5 w-10 -translate-x-1/2 rounded-full bg-foreground/20 sm:hidden" />
+              {/* Mobile Drag Indicator */}
+              <div className="flex w-full shrink-0 justify-center pt-3 pb-1 md:hidden">
+                <div className="h-1.5 w-12 rounded-full bg-foreground/20" />
+              </div>
 
+              {/* Close Button (Только для ПК) */}
               <button
                 onClick={handleCloseForm}
-                className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
+                className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 md:block"
                 aria-label="Close form"
               >
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="flex flex-1 flex-col overflow-y-auto p-6 pt-8 sm:p-8">
+              <div className="flex-1 overflow-y-auto p-6 md:p-8">
                 {isSubmittedSuccess ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex h-full flex-col items-center justify-center space-y-4 py-8 text-center"
+                    className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
                   >
                     <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-soft-gold/15 text-soft-gold">
                       <CheckCircle2 className="h-10 w-10 stroke-[1.5]" />
                     </div>
+
                     <h2 className="font-heading text-2xl text-foreground">
                       Request Received!
                     </h2>
+
                     <p className="max-w-md font-heading text-xs leading-relaxed text-foreground/75 md:text-sm">
                       Thank you, {formData.fullName || 'there'}. The Custom Order request for &quot;{getProductName(selectedReview)}&quot; has been received. A reply will be sent shortly.
                     </p>
-                    {/* Кнопка успеха на десктопе */}
+
                     <Button
                       onClick={handleCloseForm}
-                      className="mt-6 hidden w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white sm:flex"
+                      className="mt-4 w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white md:mt-0"
                     >
                       Got It
                     </Button>
                   </motion.div>
                 ) : (
                   <>
-                    <div className="mb-5 flex items-center gap-4 rounded-xl border border-foreground/10 bg-ivory p-3 sm:mb-6">
-                      <Image
-                        src={getImageUrl(selectedReview)}
-                        alt="Product"
-                        width={60}
-                        className="h-14 w-14 shrink-0 rounded-lg object-cover"
-                      />
+                    <div className="mb-4 flex items-center gap-3 rounded-xl border border-foreground/10 bg-ivory p-3">
+                      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg">
+                        <Image
+                          src={getImageUrl(selectedReview)}
+                          alt="Product"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
                       <div>
                         <p className="font-heading text-sm font-semibold text-foreground">
                           {getProductName(selectedReview)}
@@ -446,52 +492,83 @@ export default function ReviewsPage() {
                     <h2 className="mb-1 font-heading text-xl text-foreground md:text-2xl">
                       Custom Order
                     </h2>
-                    <p className="mb-6 font-heading text-xs text-foreground/70 md:text-sm">
+
+                    <p className="mb-4 font-heading text-xs text-foreground/70 md:text-sm">
                       Leave contact details to request a custom remake of this piece. A fitting & measurement guide will be provided after the request.
                     </p>
 
-                    <form id="custom-order-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
+                    <form id="custom-order-form" onSubmit={handleSubmit} className="space-y-4 pb-4 md:pb-0">
                       <div>
-                        <Label htmlFor="fullName" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
+                        <Label
+                          htmlFor="fullName"
+                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
+                        >
                           Full Name *
                         </Label>
                         <Input
                           id="fullName"
                           required
                           value={formData.fullName}
-                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                          onChange={(event) =>
+                            setFormData({
+                              ...formData,
+                              fullName: event.target.value,
+                            })
+                          }
                           className="rounded-lg font-heading text-sm"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="country" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
+                        <Label
+                          htmlFor="country"
+                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
+                        >
                           Country *
                         </Label>
                         <Input
                           id="country"
                           required
                           value={formData.country}
-                          onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                          onChange={(event) =>
+                            setFormData({
+                              ...formData,
+                              country: event.target.value,
+                            })
+                          }
                           className="rounded-lg font-heading text-sm"
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="preferredContactMethod" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
+                        <Label
+                          htmlFor="preferredContactMethod"
+                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
+                        >
                           Contact Method *
                         </Label>
                         <Select
                           required
                           value={formData.preferredContactMethod}
                           onValueChange={(value) =>
-                            setFormData({ ...formData, preferredContactMethod: value, contactDetails: '' })
+                            setFormData({
+                              ...formData,
+                              preferredContactMethod: value,
+                              contactDetails: '',
+                            })
                           }
                         >
-                          <SelectTrigger id="preferredContactMethod" className="rounded-lg font-heading text-sm">
+                          <SelectTrigger
+                            id="preferredContactMethod"
+                            className="rounded-lg font-heading text-sm"
+                          >
                             <SelectValue placeholder="Select method" />
                           </SelectTrigger>
-                          <SelectContent className="z-[70]" position="popper" sideOffset={4}>
+                          <SelectContent
+                            className="z-[70]"
+                            position="popper"
+                            sideOffset={4}
+                          >
                             <SelectItem value="instagram">Instagram</SelectItem>
                             <SelectItem value="whatsapp">WhatsApp</SelectItem>
                             <SelectItem value="email">Email</SelectItem>
@@ -501,7 +578,10 @@ export default function ReviewsPage() {
 
                       {formData.preferredContactMethod && (
                         <div>
-                          <Label htmlFor="contactDetails" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
+                          <Label
+                            htmlFor="contactDetails"
+                            className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
+                          >
                             {formData.preferredContactMethod === 'instagram' && 'Instagram Handle *'}
                             {formData.preferredContactMethod === 'whatsapp' && 'WhatsApp Number *'}
                             {formData.preferredContactMethod === 'email' && 'Email Address *'}
@@ -510,11 +590,18 @@ export default function ReviewsPage() {
                             id="contactDetails"
                             required
                             value={formData.contactDetails}
-                            onChange={(e) => setFormData({ ...formData, contactDetails: e.target.value })}
+                            onChange={(event) =>
+                              setFormData({
+                                ...formData,
+                                contactDetails: event.target.value,
+                              })
+                            }
                             placeholder={
-                              formData.preferredContactMethod === 'instagram' ? '@handle'
-                              : formData.preferredContactMethod === 'whatsapp' ? '+1 234 567 890'
-                              : 'email@example.com'
+                              formData.preferredContactMethod === 'instagram'
+                                ? '@handle'
+                                : formData.preferredContactMethod === 'whatsapp'
+                                  ? '+1 234 567 890'
+                                  : 'email@example.com'
                             }
                             className="rounded-lg font-heading text-sm"
                           />
@@ -522,24 +609,32 @@ export default function ReviewsPage() {
                       )}
 
                       <div>
-                        <Label htmlFor="message" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
+                        <Label
+                          htmlFor="message"
+                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
+                        >
                           Additional Notes
                         </Label>
                         <Textarea
                           id="message"
-                          rows={3}
+                          rows={4}
                           value={formData.message}
-                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                          placeholder="Measurements or details..."
+                          onChange={(event) =>
+                            setFormData({
+                              ...formData,
+                              message: event.target.value,
+                            })
+                          }
+                          placeholder="Add notes, measurements, or preferred details."
                           className="resize-none rounded-lg font-heading text-sm"
                         />
                       </div>
 
-                      {/* Кнопка сабмита для десктопа */}
+                      {/* Desktop Submit Button (скрыта на мобильных) */}
                       <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="mt-4 hidden w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white sm:flex disabled:opacity-50"
+                        className="hidden w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white disabled:opacity-50 md:block"
                       >
                         {isSubmitting ? 'Sending...' : 'Send Request'}
                       </Button>
@@ -548,28 +643,71 @@ export default function ReviewsPage() {
                 )}
               </div>
 
-              {/* STICKY Кнопка сабмита / Успеха на мобилке */}
-              <div className="shrink-0 border-t border-foreground/10 bg-background/90 p-4 pb-8 backdrop-blur-md sm:hidden">
-                {isSubmittedSuccess ? (
-                  <Button
-                    onClick={handleCloseForm}
-                    className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background"
-                  >
-                    Got It
-                  </Button>
-                ) : (
+              {/* Sticky Mobile Submit CTA */}
+              {!isSubmittedSuccess && (
+                <div className="shrink-0 border-t border-foreground/10 bg-background p-4 pb-safe space-y-2 md:hidden">
                   <Button
                     type="submit"
-                    form="custom-order-form" // Связываем с формой по ID
+                    form="custom-order-form"
                     disabled={isSubmitting}
-                    className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md disabled:opacity-50"
+                    className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md transition-all hover:bg-soft-gold hover:text-white disabled:opacity-50"
                   >
                     {isSubmitting ? 'Sending...' : 'Send Request'}
                   </Button>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleCloseForm}
+                    className="w-full py-2 text-center font-heading text-xs uppercase tracking-wider text-foreground/50 hover:text-foreground transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- FULLSCREEN LIGHTBOX ZOOM --- */}
+      <AnimatePresence>
+        {isFullscreenZoom && selectedReview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8 cursor-zoom-out"
+            onClick={() => setIsFullscreenZoom(false)}
+          >
+            <button 
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 bg-black/20 hover:bg-black/40 p-2 sm:p-3 rounded-full text-white transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFullscreenZoom(false);
+              }}
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+
+            <div className="relative flex items-center justify-center w-full h-full max-w-5xl">
+              {isZoomImageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+                  <LoadingSpinner />
+                </div>
+              )}
+
+              <Image
+                src={getImageUrl(selectedReview)}
+                alt={selectedReview.reviewTitle || 'Zoomed View'}
+                fittingType="fit"
+                onLoad={() => setIsZoomImageLoading(false)}
+                onError={() => setIsZoomImageLoading(false)}
+                className={`max-w-[92vw] max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain rounded-xl sm:rounded-2xl shadow-2xl transition-opacity duration-300 ${
+                  isZoomImageLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -29,6 +29,8 @@ interface Review {
   image?: string | ImageObject;
   photo?: string | ImageObject;
   src?: string | ImageObject;
+  _createdDate?: string | Date;
+  createdAt?: string | Date;
 }
 
 export default function HomePage() {
@@ -42,50 +44,45 @@ export default function HomePage() {
     let isMounted = true;
 
     const fetchData = async () => {
-      // PRODUCTS AND COLLECTIONS
       try {
-        const [productsResult, collectionsResult] = await Promise.all([
+        // Загружаем всё параллельно для максимальной скорости
+        const [productsRes, collectionsRes, reviewsRes] = await Promise.allSettled([
           BaseCrudService.getAll<Products>('products'),
-          BaseCrudService.getAll<Collection>(
-            'collections',
-            {},
-            { limit: 4 }
-          ),
+          BaseCrudService.getAll<Collection>('collections', {}, { limit: 4 }),
+          BaseCrudService.getAll<Review>('reviews'),
         ]);
 
-        if (isMounted) {
-          const readyToShip = productsResult.items
+        if (!isMounted) return;
+
+        // 1. Обработка товаров
+        if (productsRes.status === 'fulfilled' && productsRes.value?.items) {
+          const readyToShip = productsRes.value.items
             .filter((product) => product.inStock === true)
             .slice(0, 6);
-
           setFeaturedProducts(readyToShip);
-          setCollections(collectionsResult.items);
         }
-      } catch (err) {
-        console.error(
-          'Error loading products or collections:',
-          err
-        );
-      }
 
-      // REVIEWS
-      try {
-        const reviewsResult =
-          await BaseCrudService.getAll<Review>('reviews');
+        // 2. Обработка коллекций
+        if (collectionsRes.status === 'fulfilled' && collectionsRes.value?.items) {
+          setCollections(collectionsRes.value.items);
+        }
 
-        if (
-          isMounted &&
-          reviewsResult?.items &&
-          reviewsResult.items.length > 0
-        ) {
-          const latestReviews = [...reviewsResult.items]
-            .reverse()
+        // 3. Обработка отзывов: строго 5 самых новых по дате создания
+        if (reviewsRes.status === 'fulfilled' && reviewsRes.value?.items?.length) {
+          const allReviews = reviewsRes.value.items;
+          
+          const latestReviews = [...allReviews]
+            .sort((a, b) => {
+              const dateA = new Date(a._createdDate || a.createdAt || 0).getTime();
+              const dateB = new Date(b._createdDate || b.createdAt || 0).getTime();
+              return dateB - dateA; 
+            })
             .slice(0, 5);
 
           setReviews(latestReviews);
         }
       } catch (err) {
-        console.error('Error loading reviews:', err);
+        console.error('Error loading homepage data:', err);
       }
     };
 
@@ -96,38 +93,37 @@ export default function HomePage() {
     };
   }, []);
 
-  // Horizontal mouse wheel scrolling for reviews
+  // Горизонтальный скролл карусели отзывов колесиком мыши
   useEffect(() => {
     const scrollContainer = reviewsScrollRef.current;
-
     if (!scrollContainer) return;
 
     const handleWheel = (e: WheelEvent) => {
       if (e.deltaY !== 0 && e.deltaX === 0) {
-        e.preventDefault();
+        const atLeftEdge = scrollContainer.scrollLeft <= 0;
+        const atRightEdge = 
+          scrollContainer.scrollLeft + scrollContainer.clientWidth >= scrollContainer.scrollWidth - 1;
 
+        // Отпускаем скролл странице, если достигли края карусели
+        if ((e.deltaY < 0 && atLeftEdge) || (e.deltaY > 0 && atRightEdge)) {
+          return; 
+        }
+
+        e.preventDefault();
         scrollContainer.scrollBy({
-          left: e.deltaY * 2.5,
-          behavior: 'smooth',
+          left: e.deltaY * 2,
+          behavior: 'auto', 
         });
       }
     };
 
-    scrollContainer.addEventListener(
-      'wheel',
-      handleWheel,
-      { passive: false }
-    );
+    scrollContainer.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
-      scrollContainer.removeEventListener(
-        'wheel',
-        handleWheel
-      );
+      scrollContainer.removeEventListener('wheel', handleWheel);
     };
   }, []);
 
-  // Safely extract review image URL
   const getReviewImageUrl = (review: Review): string => {
     const rawImage =
       review.reviewImage ||
@@ -140,10 +136,7 @@ export default function HomePage() {
       return rawImage;
     }
 
-    if (
-      typeof rawImage === 'object' &&
-      rawImage !== null
-    ) {
+    if (typeof rawImage === 'object' && rawImage !== null) {
       return rawImage.url || rawImage.src || '';
     }
 
@@ -162,7 +155,6 @@ export default function HomePage() {
             width={1920}
             className="w-full h-full object-cover"
           />
-
           <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px]" />
         </div>
 
@@ -187,58 +179,42 @@ export default function HomePage() {
       {/* VALUE PROPOSITION */}
       <section className="border-b border-foreground/5 bg-ivory/50 py-8">
         <div className="max-w-[120rem] mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-
-          {/* UPCYCLED & UNIQUE */}
           <div className="flex flex-col items-center gap-2">
             <Sparkles className="w-6 h-6 text-soft-gold" />
-
             <h4 className="font-heading text-xs md:text-sm tracking-wider uppercase text-foreground">
               Upcycled & Unique
             </h4>
-
             <p className="text-xs text-foreground/60 max-w-xs leading-relaxed">
-              Each corset is handcrafted from vintage and rescued
-              materials, making every piece unique.
+              Each corset is handcrafted from vintage and rescued materials, making every piece unique.
             </p>
           </div>
 
-          {/* TAILORED FIT */}
           <div className="flex flex-col items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-soft-gold" />
-
             <h4 className="font-heading text-xs md:text-sm tracking-wider uppercase text-foreground">
               Tailored Fit
             </h4>
-
             <p className="text-xs text-foreground/60 max-w-xs leading-relaxed">
-              Custom sizing and material options are available for
-              a personalized fit.
+              Custom sizing and material options are available for a personalized fit.
             </p>
           </div>
 
-          {/* WORLDWIDE DELIVERY */}
           <div className="flex flex-col items-center gap-2">
             <Truck className="w-6 h-6 text-soft-gold" />
-
             <h4 className="font-heading text-xs md:text-sm tracking-wider uppercase text-foreground">
               Worldwide Delivery
             </h4>
-
             <p className="text-xs text-foreground/60 max-w-xs leading-relaxed">
-              Carefully packed and shipped safely to destinations
-              worldwide.
+              Carefully packed and shipped safely to destinations worldwide.
             </p>
           </div>
-
         </div>
       </section>
 
       <div className="bg-background">
-
         {/* COLLECTIONS */}
         <section className="py-12 md:py-20">
           <div className="max-w-[120rem] mx-auto px-6 md:px-12">
-
             <div className="text-center mb-8 md:mb-14">
               <h2 className="font-heading text-3xl md:text-5xl text-foreground">
                 Collections
@@ -250,36 +226,20 @@ export default function HomePage() {
                 {collections.map((collection, index) => (
                   <motion.div
                     key={collection._id}
-                    initial={{
-                      opacity: 0,
-                      y: 20,
-                    }}
-                    whileInView={{
-                      opacity: 1,
-                      y: 0,
-                    }}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
-                    transition={{
-                      duration: 0.6,
-                      delay: index * 0.1,
-                    }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
                   >
-                    <Link
-                      to={`/catalog?collection=${collection._id}`}
-                      className="group block"
-                    >
+                    <Link to={`/catalog?collection=${collection._id}`} className="group block">
                       <div className="bg-ivory rounded-2xl overflow-hidden mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md">
                         <Image
                           src={collection.image || ''}
-                          alt={
-                            collection.name ||
-                            'Collection'
-                          }
+                          alt={collection.name || 'Collection'}
                           width={800}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       </div>
-
                       <h3 className="font-heading text-base md:text-xl text-foreground text-center group-hover:text-soft-gold transition-colors">
                         {collection.name}
                       </h3>
@@ -294,7 +254,6 @@ export default function HomePage() {
         {/* READY TO SHIP */}
         <section className="py-12 md:py-20 border-t border-foreground/5">
           <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
-
             <div className="text-center mb-8 md:mb-14">
               <h2 className="font-heading text-3xl md:text-5xl text-foreground">
                 Ready to Ship
@@ -307,45 +266,26 @@ export default function HomePage() {
                   {featuredProducts.map((product, index) => (
                     <motion.div
                       key={product._id}
-                      initial={{
-                        opacity: 0,
-                        y: 20,
-                      }}
-                      whileInView={{
-                        opacity: 1,
-                        y: 0,
-                      }}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
-                      transition={{
-                        duration: 0.5,
-                        delay: index * 0.05,
-                      }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
                     >
-                      <Link
-                        to={`/product/${product._id}`}
-                        className="group block relative"
-                      >
+                      <Link to={`/product/${product._id}`} className="group block relative">
                         <div className="bg-ivory rounded-xl overflow-hidden mb-2 sm:mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md relative">
-
                           <Image
                             src={product.mainImage || ''}
-                            alt={
-                              product.name ||
-                              'Corset'
-                            }
+                            alt={product.name || 'Corset'}
                             width={600}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                           />
-
                           <div className="absolute top-2.5 right-2.5 bg-soft-gold text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
                             Ready to Ship
                           </div>
                         </div>
-
                         <h3 className="font-heading text-xs sm:text-base text-foreground group-hover:text-soft-gold transition-colors line-clamp-1">
                           {product.name}
                         </h3>
-
                         <p className="font-heading text-xs sm:text-sm text-soft-gold font-bold mt-0.5">
                           ${product.price?.toFixed(2)}
                         </p>
@@ -376,7 +316,6 @@ export default function HomePage() {
         {/* REVIEWS */}
         <section className="py-12 md:py-20 border-t border-foreground/5 overflow-hidden w-full relative">
           <div className="max-w-[120rem] mx-auto w-full min-w-0">
-
             <div className="text-center mb-8 md:mb-12 px-6 md:px-12">
               <h2 className="font-heading text-3xl md:text-5xl text-foreground">
                 Reviews
@@ -389,34 +328,21 @@ export default function HomePage() {
                 className="w-full overflow-x-auto flex gap-4 md:gap-6 pb-4 px-6 md:px-12 scrollbar-hide items-stretch scroll-smooth"
               >
                 {reviews.map((review, index) => {
-                  const imageUrl =
-                    getReviewImageUrl(review);
+                  const imageUrl = getReviewImageUrl(review);
 
                   return (
                     <motion.div
                       key={review._id || index}
-                      initial={{
-                        opacity: 0,
-                        x: 20,
-                      }}
-                      whileInView={{
-                        opacity: 1,
-                        x: 0,
-                      }}
+                      initial={{ opacity: 0, x: 20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{
-                        duration: 0.5,
-                        delay: index * 0.05,
-                      }}
+                      transition={{ duration: 0.5, delay: index * 0.05 }}
                       className="shrink-0 w-[260px] sm:w-[300px] md:w-[340px] aspect-[3/4] bg-ivory rounded-2xl overflow-hidden shadow-sm flex flex-col justify-center items-center border border-foreground/5"
                     >
                       {imageUrl ? (
                         <Image
                           src={imageUrl}
-                          alt={
-                            review.name ||
-                            'Client review'
-                          }
+                          alt={review.name || 'Client review'}
                           width={600}
                           className="w-full h-full object-cover select-none pointer-events-none"
                         />
@@ -433,11 +359,9 @@ export default function HomePage() {
 
                 {/* VIEW ALL REVIEWS */}
                 <div className="shrink-0 w-[260px] sm:w-[300px] md:w-[340px] aspect-[3/4] bg-background border border-foreground/10 rounded-2xl flex flex-col items-center justify-center p-8 group hover:border-soft-gold transition-colors duration-300">
-
                   <h3 className="font-heading text-xl md:text-2xl text-foreground text-center mb-6">
                     Want to see more?
                   </h3>
-
                   <Link
                     to="/reviews"
                     className="inline-block font-heading text-xs md:text-sm text-foreground hover:text-soft-gold transition-colors tracking-widest uppercase border-b border-foreground/20 pb-1 group-hover:border-soft-gold"
@@ -457,37 +381,25 @@ export default function HomePage() {
                 Swipe to explore →
               </span>
             </div>
-
           </div>
         </section>
-
       </div>
 
       {/* CUSTOM ORDER CTA */}
       <section className="py-16 md:py-24 bg-ivory">
         <div className="max-w-[120rem] mx-auto px-6 md:px-12 text-center">
-
           <motion.div
-            initial={{
-              opacity: 0,
-              y: 20,
-            }}
-            whileInView={{
-              opacity: 1,
-              y: 0,
-            }}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
             <h2 className="font-heading text-2xl md:text-4xl text-foreground mb-4">
               Need a Custom Size or Unique Design?
             </h2>
-
             <p className="font-paragraph text-xs md:text-sm text-foreground/70 mb-8 max-w-xl mx-auto leading-relaxed">
-              Corsets can be tailored to exact measurements
-              for a personalized fit.
+              Corsets can be tailored to exact measurements for a personalized fit.
             </p>
-
             <Link to="/contact">
               <Button
                 size="lg"
@@ -497,7 +409,6 @@ export default function HomePage() {
               </Button>
             </Link>
           </motion.div>
-
         </div>
       </section>
 
