@@ -181,6 +181,9 @@ export default function ReviewsPage() {
     }
   };
 
+  // Параметры анимации для нативного фила "шторки"
+  const springTransition = { type: 'spring', damping: 25, stiffness: 300 };
+
   return (
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
       <Header />
@@ -257,9 +260,11 @@ export default function ReviewsPage() {
         </div>
       </main>
 
+      {/* --- PREVIEW MODAL (С гибридной навигацией Шторка/Центр) --- */}
       <AnimatePresence>
         {selectedReview && !isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4 md:p-8">
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -268,84 +273,107 @@ export default function ReviewsPage() {
               className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             />
 
-            {/* Модальное окно с равными пропорциями 50%/50% */}
+            {/* Modal Container */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className="relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-2xl md:flex-row"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={springTransition}
+              className="relative z-10 flex h-[90dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-4xl sm:flex-row sm:rounded-2xl"
             >
+              {/* Пилл (ручка) для свайпа на мобилках */}
+              <div className="absolute left-1/2 top-3 z-30 h-1.5 w-10 -translate-x-1/2 rounded-full bg-foreground/20 sm:hidden" />
+
+              {/* Крестик на десктопе */}
               <button
                 onClick={handleCloseReview}
-                className="absolute right-3 top-3 z-30 rounded-full bg-black/50 p-2 text-white transition-colors hover:bg-black/70"
+                className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
                 aria-label="Close preview"
               >
                 <X className="h-4 w-4" />
               </button>
 
-              {/* Левая часть — фото (50% ширины) */}
-              <div className="relative aspect-[3/4] w-full bg-ivory/50 md:w-1/2">
-                {isReviewImageLoading && (
-                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ivory">
-                    <LoadingSpinner />
-                    <span className="font-heading text-[10px] uppercase tracking-widest text-foreground/40">
-                      Loading photo
-                    </span>
-                  </div>
-                )}
+              {/* Скроллируемая область: на мобилке фото+текст, на десктопе разделено */}
+              <div className="flex flex-1 flex-col overflow-y-auto sm:flex-row sm:overflow-hidden">
+                
+                {/* Картинка */}
+                <div className="relative aspect-[3/4] w-full shrink-0 bg-ivory/50 sm:h-[85vh] sm:w-1/2 sm:aspect-auto">
+                  {isReviewImageLoading && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ivory">
+                      <LoadingSpinner />
+                      <span className="font-heading text-[10px] uppercase tracking-widest text-foreground/40">
+                        Loading photo
+                      </span>
+                    </div>
+                  )}
+                  <Image
+                    src={getImageUrl(selectedReview)}
+                    alt={selectedReview.reviewTitle || 'Review'}
+                    fill
+                    onLoad={() => setIsReviewImageLoading(false)}
+                    onError={() => setIsReviewImageLoading(false)}
+                    className={`object-contain transition-opacity duration-300 sm:p-4 ${
+                      isReviewImageLoading ? 'opacity-0' : 'opacity-100'
+                    }`}
+                  />
+                </div>
 
-                <Image
-                  src={getImageUrl(selectedReview)}
-                  alt={selectedReview.reviewTitle || 'Review'}
-                  width={1200}
-                  onLoad={() => setIsReviewImageLoading(false)}
-                  onError={() => setIsReviewImageLoading(false)}
-                  className={`h-full w-full object-cover ${
-                    isReviewImageLoading ? 'opacity-0' : 'opacity-100'
-                  }`}
-                />
+                {/* Контент */}
+                <div className="flex flex-col p-6 pt-8 sm:w-1/2 sm:overflow-y-auto sm:p-8">
+                  <div className="space-y-3">
+                    <span className="font-heading text-xs uppercase tracking-widest text-soft-gold">
+                      Customer Look
+                    </span>
+                    <h2 className="font-heading text-xl text-foreground md:text-2xl">
+                      {selectedReview.reviewTitle || 'Custom Handcrafted Piece'}
+                    </h2>
+                    <p className="font-paragraph text-xs leading-relaxed text-foreground/80 md:text-sm">
+                      Like this style? Every piece is handmade and unique. A custom remake can be requested based on the selected style and individual measurements.
+                    </p>
+                  </div>
+
+                  {/* Кнопки на десктопе (снизу контента) */}
+                  <div className="mt-8 hidden flex-col gap-3 border-t border-foreground/10 pt-6 sm:flex">
+                    <Button
+                      onClick={() => handleOpenForm(selectedReview)}
+                      className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md transition-all hover:bg-soft-gold hover:text-white"
+                    >
+                      Custom Order
+                    </Button>
+                    <button
+                      onClick={handleCloseReview}
+                      className="w-full py-1 text-center font-heading text-xs text-foreground/50 transition-colors hover:text-foreground"
+                    >
+                      Close Preview
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Правая часть — текст (симметричные 50% ширины) */}
-              <div className="flex w-full flex-col justify-between overflow-y-auto p-6 md:w-1/2 md:p-8">
-                <div className="space-y-3">
-                  <span className="font-heading text-xs uppercase tracking-widest text-soft-gold">
-                    Customer Look
-                  </span>
-
-                  <h2 className="font-heading text-xl text-foreground md:text-2xl">
-                    {selectedReview.reviewTitle || 'Custom Handcrafted Piece'}
-                  </h2>
-
-                  <p className="font-paragraph text-xs leading-relaxed text-foreground/80 md:text-sm">
-                    Like this style? Every piece is handmade and unique. A custom remake can be requested based on the selected style and individual measurements.
-                  </p>
-                </div>
-
-                <div className="mt-6 flex flex-col gap-3 border-t border-foreground/10 pt-4">
-                  <Button
-                    onClick={() => handleOpenForm(selectedReview)}
-                    className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md transition-all hover:bg-soft-gold hover:text-white"
-                  >
-                    Custom Order
-                  </Button>
-
-                  <button
-                    onClick={handleCloseReview}
-                    className="w-full py-1 text-center font-heading text-xs text-foreground/50 transition-colors hover:text-foreground"
-                  >
-                    Close Preview
-                  </button>
-                </div>
+              {/* STICKY Кнопки на мобилке (зафиксированы снизу) */}
+              <div className="shrink-0 border-t border-foreground/10 bg-background/90 p-4 pb-8 backdrop-blur-md sm:hidden">
+                <Button
+                  onClick={() => handleOpenForm(selectedReview)}
+                  className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md"
+                >
+                  Custom Order
+                </Button>
+                <button
+                  onClick={handleCloseReview}
+                  className="mt-3 w-full py-1 text-center font-heading text-xs text-foreground/50"
+                >
+                  Close Preview
+                </button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
 
+      {/* --- FORM MODAL (Также с логикой шторки) --- */}
       <AnimatePresence>
         {isFormOpen && selectedReview && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -355,60 +383,60 @@ export default function ReviewsPage() {
             />
 
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className="relative z-10 flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-foreground/10 bg-background shadow-2xl"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={springTransition}
+              className="relative z-10 flex h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl"
             >
+              {/* Пилл (ручка) */}
+              <div className="absolute left-1/2 top-3 z-30 h-1.5 w-10 -translate-x-1/2 rounded-full bg-foreground/20 sm:hidden" />
+
               <button
                 onClick={handleCloseForm}
-                className="absolute right-3 top-3 z-30 rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20"
+                className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
                 aria-label="Close form"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
 
-              <div className="overflow-y-auto p-6 md:p-8">
+              <div className="flex flex-1 flex-col overflow-y-auto p-6 pt-8 sm:p-8">
                 {isSubmittedSuccess ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="flex flex-col items-center justify-center space-y-4 py-8 text-center"
+                    className="flex h-full flex-col items-center justify-center space-y-4 py-8 text-center"
                   >
                     <div className="mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-soft-gold/15 text-soft-gold">
                       <CheckCircle2 className="h-10 w-10 stroke-[1.5]" />
                     </div>
-
                     <h2 className="font-heading text-2xl text-foreground">
                       Request Received!
                     </h2>
-
                     <p className="max-w-md font-heading text-xs leading-relaxed text-foreground/75 md:text-sm">
                       Thank you, {formData.fullName || 'there'}. The Custom Order request for &quot;{getProductName(selectedReview)}&quot; has been received. A reply will be sent shortly.
                     </p>
-
+                    {/* Кнопка успеха на десктопе */}
                     <Button
                       onClick={handleCloseForm}
-                      className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white"
+                      className="mt-6 hidden w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white sm:flex"
                     >
                       Got It
                     </Button>
                   </motion.div>
                 ) : (
                   <>
-                    <div className="mb-4 flex items-center gap-3 rounded-xl border border-foreground/10 bg-ivory p-3">
+                    <div className="mb-5 flex items-center gap-4 rounded-xl border border-foreground/10 bg-ivory p-3 sm:mb-6">
                       <Image
                         src={getImageUrl(selectedReview)}
                         alt="Product"
                         width={60}
                         className="h-14 w-14 shrink-0 rounded-lg object-cover"
                       />
-
                       <div>
                         <p className="font-heading text-sm font-semibold text-foreground">
                           {getProductName(selectedReview)}
                         </p>
-
                         <p className="mt-0.5 font-heading text-xs font-bold text-soft-gold">
                           Custom Order
                         </p>
@@ -418,87 +446,52 @@ export default function ReviewsPage() {
                     <h2 className="mb-1 font-heading text-xl text-foreground md:text-2xl">
                       Custom Order
                     </h2>
-
-                    <p className="mb-4 font-heading text-xs text-foreground/70 md:text-sm">
+                    <p className="mb-6 font-heading text-xs text-foreground/70 md:text-sm">
                       Leave contact details to request a custom remake of this piece. A fitting & measurement guide will be provided after the request.
                     </p>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    <form id="custom-order-form" onSubmit={handleSubmit} className="space-y-4 pb-4">
                       <div>
-                        <Label
-                          htmlFor="fullName"
-                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
-                        >
+                        <Label htmlFor="fullName" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
                           Full Name *
                         </Label>
-
                         <Input
                           id="fullName"
                           required
                           value={formData.fullName}
-                          onChange={(event) =>
-                            setFormData({
-                              ...formData,
-                              fullName: event.target.value,
-                            })
-                          }
+                          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                           className="rounded-lg font-heading text-sm"
                         />
                       </div>
 
                       <div>
-                        <Label
-                          htmlFor="country"
-                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
-                        >
+                        <Label htmlFor="country" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
                           Country *
                         </Label>
-
                         <Input
                           id="country"
                           required
                           value={formData.country}
-                          onChange={(event) =>
-                            setFormData({
-                              ...formData,
-                              country: event.target.value,
-                            })
-                          }
+                          onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                           className="rounded-lg font-heading text-sm"
                         />
                       </div>
 
                       <div>
-                        <Label
-                          htmlFor="preferredContactMethod"
-                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
-                        >
+                        <Label htmlFor="preferredContactMethod" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
                           Contact Method *
                         </Label>
-
                         <Select
                           required
                           value={formData.preferredContactMethod}
                           onValueChange={(value) =>
-                            setFormData({
-                              ...formData,
-                              preferredContactMethod: value,
-                              contactDetails: '',
-                            })
+                            setFormData({ ...formData, preferredContactMethod: value, contactDetails: '' })
                           }
                         >
-                          <SelectTrigger
-                            id="preferredContactMethod"
-                            className="rounded-lg font-heading text-sm"
-                          >
+                          <SelectTrigger id="preferredContactMethod" className="rounded-lg font-heading text-sm">
                             <SelectValue placeholder="Select method" />
                           </SelectTrigger>
-
-                          <SelectContent
-                            className="z-[70]"
-                            position="popper"
-                            sideOffset={4}
-                          >
+                          <SelectContent className="z-[70]" position="popper" sideOffset={4}>
                             <SelectItem value="instagram">Instagram</SelectItem>
                             <SelectItem value="whatsapp">WhatsApp</SelectItem>
                             <SelectItem value="email">Email</SelectItem>
@@ -508,31 +501,20 @@ export default function ReviewsPage() {
 
                       {formData.preferredContactMethod && (
                         <div>
-                          <Label
-                            htmlFor="contactDetails"
-                            className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
-                          >
+                          <Label htmlFor="contactDetails" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
                             {formData.preferredContactMethod === 'instagram' && 'Instagram Handle *'}
                             {formData.preferredContactMethod === 'whatsapp' && 'WhatsApp Number *'}
                             {formData.preferredContactMethod === 'email' && 'Email Address *'}
                           </Label>
-
                           <Input
                             id="contactDetails"
                             required
                             value={formData.contactDetails}
-                            onChange={(event) =>
-                              setFormData({
-                                ...formData,
-                                contactDetails: event.target.value,
-                              })
-                            }
+                            onChange={(e) => setFormData({ ...formData, contactDetails: e.target.value })}
                             placeholder={
-                              formData.preferredContactMethod === 'instagram'
-                                ? '@handle'
-                                : formData.preferredContactMethod === 'whatsapp'
-                                  ? '+1 234 567 890'
-                                  : 'email@example.com'
+                              formData.preferredContactMethod === 'instagram' ? '@handle'
+                              : formData.preferredContactMethod === 'whatsapp' ? '+1 234 567 890'
+                              : 'email@example.com'
                             }
                             className="rounded-lg font-heading text-sm"
                           />
@@ -540,37 +522,50 @@ export default function ReviewsPage() {
                       )}
 
                       <div>
-                        <Label
-                          htmlFor="message"
-                          className="mb-1.5 block font-heading text-xs uppercase tracking-wider text-foreground/70"
-                        >
+                        <Label htmlFor="message" className="mb-1.5 block font-heading text-[10px] uppercase tracking-wider text-foreground/70">
                           Additional Notes
                         </Label>
-
                         <Textarea
                           id="message"
-                          rows={4}
+                          rows={3}
                           value={formData.message}
-                          onChange={(event) =>
-                            setFormData({
-                              ...formData,
-                              message: event.target.value,
-                            })
-                          }
-                          placeholder="Add notes, measurements, or preferred details."
+                          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                          placeholder="Measurements or details..."
                           className="resize-none rounded-lg font-heading text-sm"
                         />
                       </div>
 
+                      {/* Кнопка сабмита для десктопа */}
                       <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white disabled:opacity-50"
+                        className="mt-4 hidden w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background transition-all hover:bg-soft-gold hover:text-white sm:flex disabled:opacity-50"
                       >
                         {isSubmitting ? 'Sending...' : 'Send Request'}
                       </Button>
                     </form>
                   </>
+                )}
+              </div>
+
+              {/* STICKY Кнопка сабмита / Успеха на мобилке */}
+              <div className="shrink-0 border-t border-foreground/10 bg-background/90 p-4 pb-8 backdrop-blur-md sm:hidden">
+                {isSubmittedSuccess ? (
+                  <Button
+                    onClick={handleCloseForm}
+                    className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background"
+                  >
+                    Got It
+                  </Button>
+                ) : (
+                  <Button
+                    type="submit"
+                    form="custom-order-form" // Связываем с формой по ID
+                    disabled={isSubmitting}
+                    className="w-full rounded-full bg-foreground py-3.5 font-heading text-xs uppercase tracking-widest text-background shadow-md disabled:opacity-50"
+                  >
+                    {isSubmitting ? 'Sending...' : 'Send Request'}
+                  </Button>
                 )}
               </div>
             </motion.div>

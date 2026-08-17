@@ -17,7 +17,7 @@ import { ContactFormSubmissions, Products } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, ChevronDown } from 'lucide-react';
+import { CheckCircle2, ChevronDown, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
@@ -164,7 +164,6 @@ export default function ProductDetailPage() {
     setIsSubmittedSuccess(true);
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -202,7 +201,6 @@ export default function ProductDetailPage() {
         ]
           .filter(Boolean)
           .join('\n');
-
       } else {
         messageContent = [
           `CUSTOM ORDER REQUEST`,
@@ -223,10 +221,7 @@ export default function ProductDetailPage() {
       };
 
       // Save submission to CMS
-      await BaseCrudService.create(
-        'contactformsubmissions',
-        submission
-      );
+      await BaseCrudService.create('contactformsubmissions', submission);
 
       // Prepare email
       const emailData: Record<string, string> = {
@@ -239,51 +234,17 @@ export default function ProductDetailPage() {
         Price: `$${product.price?.toFixed(2)}`,
       };
 
-      if (formData.fullName) {
-        emailData['Customer Name'] = formData.fullName;
-      }
-
-      if (formData.country) {
-        emailData['Country'] = formData.country;
-      }
-
-      if (formData.stateRegion) {
-        emailData['State/Region'] = formData.stateRegion;
-      }
-
-      if (formData.city) {
-        emailData['City'] = formData.city;
-      }
-
-      if (formData.streetAddress) {
-        emailData['Address'] = formData.streetAddress;
-      }
-
-      if (formData.postalCode) {
-        emailData['Zip'] = formData.postalCode;
-      }
-
-      if (formData.phone) {
-        emailData['Phone'] = formData.phone;
-      }
-
-      if (formData.email) {
-        emailData['Email'] = formData.email;
-      }
-
-      if (formData.preferredContactMethod) {
-        emailData['Contact Method'] =
-          formData.preferredContactMethod;
-      }
-
-      if (formData.contactDetails) {
-        emailData['Contact Details'] =
-          formData.contactDetails;
-      }
-
-      if (formData.message) {
-        emailData['Message / Notes'] = formData.message;
-      }
+      if (formData.fullName) emailData['Customer Name'] = formData.fullName;
+      if (formData.country) emailData['Country'] = formData.country;
+      if (formData.stateRegion) emailData['State/Region'] = formData.stateRegion;
+      if (formData.city) emailData['City'] = formData.city;
+      if (formData.streetAddress) emailData['Address'] = formData.streetAddress;
+      if (formData.postalCode) emailData['Zip'] = formData.postalCode;
+      if (formData.phone) emailData['Phone'] = formData.phone;
+      if (formData.email) emailData['Email'] = formData.email;
+      if (formData.preferredContactMethod) emailData['Contact Method'] = formData.preferredContactMethod;
+      if (formData.contactDetails) emailData['Contact Details'] = formData.contactDetails;
+      if (formData.message) emailData['Message / Notes'] = formData.message;
 
       // Send email
       await fetch(
@@ -305,7 +266,6 @@ export default function ProductDetailPage() {
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-
       toast({
         title: 'Error',
         description: 'Failed to send request. Please try again.',
@@ -315,13 +275,11 @@ export default function ProductDetailPage() {
     }
   };
 
-  const toggleAccordion = (
-    section: 'desc' | 'materials'
-  ) => {
-    setActiveAccordion(
-      activeAccordion === section ? '' : section
-    );
+  const toggleAccordion = (section: 'desc' | 'materials') => {
+    setActiveAccordion(activeAccordion === section ? '' : section);
   };
+
+  const springTransition = { type: 'spring', damping: 25, stiffness: 300 };
 
   return (
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
@@ -330,20 +288,16 @@ export default function ProductDetailPage() {
           scrollbar-width: thin;
           scrollbar-color: rgba(0, 0, 0, 0.18) transparent;
         }
-
         .modal-scrollbar::-webkit-scrollbar {
           width: 5px;
         }
-
         .modal-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
-
         .modal-scrollbar::-webkit-scrollbar-thumb {
           background: rgba(0, 0, 0, 0.18);
           border-radius: 9999px;
         }
-
         .modal-scrollbar::-webkit-scrollbar-thumb:hover {
           background: rgba(0, 0, 0, 0.3);
         }
@@ -352,9 +306,7 @@ export default function ProductDetailPage() {
 
       <main className="py-8 md:py-16">
         <div className="max-w-[120rem] mx-auto px-4 md:px-20">
-
           <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-start">
-
             {/* PRODUCT IMAGES */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
@@ -401,7 +353,6 @@ export default function ProductDetailPage() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="flex flex-col"
             >
-
               {/* AVAILABILITY */}
               {product.inStock && (
                 <div className="mb-3">
@@ -418,7 +369,8 @@ export default function ProductDetailPage() {
               <p className="font-heading text-2xl md:text-3xl text-soft-gold font-bold mb-6">
                 ${product.price?.toFixed(2)}
               </p>
-              {/* ORDER BUTTON + ANIMATED MODAL */}
+
+              {/* ORDER BUTTON */}
               <div className="mb-8">
                 <Button
                   onClick={() =>
@@ -433,725 +385,575 @@ export default function ProductDetailPage() {
               {createPortal(
                 <AnimatePresence>
                   {isDialogOpen && (
-                    <motion.div
-                      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-[1px]"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3, ease: 'easeOut' }}
-                      onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) {
-                          handleDialogChange(false);
-                        }
-                      }}
-                    >
+                    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4">
+                      {/* BACKDROP */}
+                      <motion.div
+                        className="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        onClick={() => handleDialogChange(false)}
+                      />
+
+                      {/* MODAL CONTAINER */}
                       <motion.div
                         role="dialog"
                         aria-modal="true"
-                        className="w-full max-w-[580px] max-h-[90vh] overflow-hidden rounded-2xl border border-foreground/15 bg-background shadow-2xl"
-                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                        transition={{
-                          duration: 0.3,
-                          ease: [0.22, 1, 0.36, 1],
-                        }}
-                        onMouseDown={(event) => event.stopPropagation()}
+                        initial={{ y: '100%' }}
+                        animate={{ y: 0 }}
+                        exit={{ y: '100%' }}
+                        transition={springTransition}
+                        className="relative z-10 flex h-[92dvh] w-full flex-col overflow-hidden rounded-t-[2rem] border border-foreground/15 bg-background shadow-2xl sm:h-auto sm:max-h-[90vh] sm:max-w-[580px] sm:rounded-2xl"
+                        onMouseDown={(e) => e.stopPropagation()}
                       >
-                        <div className="modal-scrollbar max-h-[90vh] overflow-y-auto p-6">
-                  {isSubmittedSuccess ? (
-                    /* SUCCESS STATE */
-                    <motion.div
-                      initial={{
-                        opacity: 0,
-                        scale: 0.95,
-                        y: 10,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        scale: 1,
-                        y: 0,
-                      }}
-                      transition={{
-                        duration: 0.3,
-                      }}
-                      className="py-8 text-center flex flex-col items-center justify-center space-y-4"
-                    >
-                      <div className="w-16 h-16 bg-soft-gold/15 rounded-full flex items-center justify-center text-soft-gold mb-2">
-                        <CheckCircle2 className="w-10 h-10 stroke-[1.5]" />
-                      </div>
+                        {/* Pill for Mobile Swipe Indication */}
+                        <div className="absolute left-1/2 top-3 z-30 h-1.5 w-10 -translate-x-1/2 rounded-full bg-foreground/20 sm:hidden" />
 
-                      <h2 className="font-heading text-2xl text-foreground">
-                        {modalMode === 'claim'
-                          ? 'Order Confirmed!'
-                          : 'Request Received!'}
-                      </h2>
-
-                      <p className="font-heading text-xs md:text-sm text-foreground/75 max-w-md leading-relaxed">
-                        {modalMode === 'claim' ? (
-                          <>
-                            Thank you, {formData.fullName || 'friend'}! Your
-                            order for "{product.name}" has been confirmed.
-                            Your payment has been received
-                            successfully.
-                          </>
-                        ) : (
-                          <>
-                            Thank you, {formData.fullName || 'friend'}! Your
-                            request for "{product.name}" has been received. A
-                            reply will be sent shortly.
-                          </>
-                        )}
-                      </p>
-
-                      <div className="pt-4 w-full">
-                        <Button
-                            onClick={() => handleDialogChange(false)}
-                            className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-3.5 font-heading text-xs uppercase tracking-widest"
-                          >
-                            Got It
-                          </Button>
-                      </div>
-                    </motion.div>
-                  ) : showPayment ? (
-                    /* PAYMENT STATE */
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <h2 className="font-heading text-xl md:text-2xl text-foreground">
-                          Payment
-                        </h2>
-
-                        <p className="font-heading text-xs md:text-sm text-foreground/70">
-                          Complete your payment to confirm the order.
-                        </p>
-                      </div>
-
-                      <div className="p-3 bg-ivory rounded-xl flex gap-3 items-center border border-foreground/10">
-                        <Image
-                          src={product.mainImage || ''}
-                          alt={product.name}
-                          width={60}
-                          className="w-14 h-14 object-cover rounded-lg shrink-0"
-                        />
-
-                        <div>
-                          <p className="font-heading text-sm text-foreground font-semibold">
-                            {product.name}
-                          </p>
-
-                          <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">
-                            ${product.price?.toFixed(2)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {paymentError && (
-                        <p className="font-heading text-xs text-red-500">
-                          {paymentError}
-                        </p>
-                      )}
-
-                      {paypalClientId ? (
-                        <PayPalScriptProvider
-                          options={{
-                            clientId: paypalClientId,
-                            currency: 'USD',
-                          }}
+                        {/* Desktop Close Button */}
+                        <button
+                          onClick={() => handleDialogChange(false)}
+                          className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
+                          aria-label="Close form"
                         >
-                          <PayPalButtons
-                            style={{ layout: 'vertical', shape: 'pill' }}
-                            forceReRender={[product._id, product.price]}
-                            createOrder={async () => {
-                              setPaymentError(null);
+                          <X className="h-4 w-4" />
+                        </button>
 
-                              const res = await fetch('/api/paypal/create-order', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  productId: product._id,
-                                }),
-                              });
-
-                              const data = await res.json();
-
-                              if (!res.ok) {
-                                setPaymentError(
-                                  'Could not start PayPal checkout. Please try again.'
-                                );
-                                throw new Error(data.error || 'create-order failed');
-                              }
-
-                              return data.id;
-                            }}
-                            onApprove={async (data) => {
-                              const res = await fetch('/api/paypal/capture-order', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ orderID: data.orderID }),
-                              });
-
-                              if (!res.ok) {
-                                setPaymentError(
-                                  'Payment could not be completed. Please try again.'
-                                );
-                                return;
-                              }
-
-                              handlePaymentSuccess();
-                            }}
-                            onError={() => {
-                              setPaymentError(
-                                'PayPal checkout error. Please try again.'
-                              );
-                            }}
-                          />
-                        </PayPalScriptProvider>
-                      ) : (
-                        <div className="py-4 flex justify-center">
-                          <LoadingSpinner />
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setShowPayment(false)}
-                        className="w-full text-center font-heading text-xs text-foreground/50 hover:text-foreground py-2 transition-colors"
-                      >
-                        Back
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <h2 className="font-heading text-xl md:text-2xl text-foreground">
-                          {modalMode === 'claim'
-                            ? 'Shipping Details'
-                            : 'Custom Order'}
-                        </h2>
-
-                        <p className="font-heading text-xs md:text-sm text-foreground/70">
-                          {modalMode === 'claim'
-                            ? 'Fill in your delivery details to reserve and complete your order.'
-                            : 'Leave your contact details to request a custom order. A fitting & measurement guide will be provided after the request.'}
-                        </p>
-                      </div>
-
-                      <form
-                        onSubmit={handleSubmit}
-                        className="space-y-4 mt-4"
-                      >
-
-                        {/* PRODUCT PREVIEW */}
-                        <div className="p-3 bg-ivory rounded-xl flex gap-3 items-center border border-foreground/10">
-                          <Image
-                            src={product.mainImage || ''}
-                            alt={product.name}
-                            width={60}
-                            className="w-14 h-14 object-cover rounded-lg shrink-0"
-                          />
-
-                          <div>
-                            <p className="font-heading text-sm text-foreground font-semibold">
-                              {product.name}
-                            </p>
-
-                            <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">
-                              ${product.price?.toFixed(2)}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* READY TO SHIP FORM */}
-                        {modalMode === 'claim' ? (
-                          <div className="space-y-3.5">
-
-                            {/* FULL NAME */}
-                            <div>
-                              <Label
-                                htmlFor="fullName"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                              >
-                                Full Name *
-                              </Label>
-
-                              <Input
-                                id="fullName"
-                                required
-                                placeholder="John Doe"
-                                value={formData.fullName}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    fullName: e.target.value,
-                                  })
-                                }
-                                className="font-heading text-sm rounded-lg"
-                              />
-                            </div>
-
-                            {/* COUNTRY + STATE */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label
-                                  htmlFor="country"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  Country *
-                                </Label>
-
-                                <Input
-                                  id="country"
-                                  required
-                                  placeholder="United States"
-                                  value={formData.country}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      country: e.target.value,
-                                    })
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
+                        {/* INNER SCROLLABLE CONTENT */}
+                        <div className="modal-scrollbar flex flex-1 flex-col overflow-y-auto p-6 pt-8 sm:p-8">
+                          {isSubmittedSuccess ? (
+                            /* SUCCESS STATE */
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                              animate={{ opacity: 1, scale: 1, y: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="flex flex-1 flex-col items-center justify-center space-y-4 py-8 text-center"
+                            >
+                              <div className="w-16 h-16 bg-soft-gold/15 rounded-full flex items-center justify-center text-soft-gold mb-2">
+                                <CheckCircle2 className="w-10 h-10 stroke-[1.5]" />
                               </div>
 
-                              <div>
-                                <Label
-                                  htmlFor="stateRegion"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  State / Region *
-                                </Label>
+                              <h2 className="font-heading text-2xl text-foreground">
+                                {modalMode === 'claim'
+                                  ? 'Order Confirmed!'
+                                  : 'Request Received!'}
+                              </h2>
 
-                                <Input
-                                  id="stateRegion"
-                                  required
-                                  placeholder="California / NY"
-                                  value={formData.stateRegion}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      stateRegion: e.target.value,
-                                    })
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
-                              </div>
-                            </div>
-
-                            {/* CITY + POSTAL */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label
-                                  htmlFor="city"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  City *
-                                </Label>
-
-                                <Input
-                                  id="city"
-                                  required
-                                  placeholder="Los Angeles"
-                                  value={formData.city}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      city: e.target.value,
-                                    })
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
-                              </div>
-
-                              <div>
-                                <Label
-                                  htmlFor="postalCode"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  Postal / ZIP Code *
-                                </Label>
-
-                                <Input
-                                  id="postalCode"
-                                  required
-                                  placeholder="90001"
-                                  value={formData.postalCode}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      postalCode: e.target.value,
-                                    })
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
-                              </div>
-                            </div>
-
-                            {/* ADDRESS */}
-                            <div>
-                              <Label
-                                htmlFor="streetAddress"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                              >
-                                Street Address *
-                              </Label>
-
-                              <Input
-                                id="streetAddress"
-                                required
-                                placeholder="123 Main Street, Apt 4B"
-                                value={formData.streetAddress}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    streetAddress: e.target.value,
-                                  })
-                                }
-                                className="font-heading text-sm rounded-lg"
-                              />
-                            </div>
-
-                            {/* DELIVERY PHONE + EMAIL */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <div>
-                                <Label
-                                  htmlFor="phone"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  Phone (with Country Code) *
-                                </Label>
-
-                                <Input
-                                  id="phone"
-                                  type="tel"
-                                  required
-                                  placeholder="+1 234 567 8900"
-                                  value={formData.phone}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      phone: e.target.value,
-                                    })
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
-                              </div>
-
-                              <div>
-                                <Label
-                                  htmlFor="email"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  Email Address *
-                                </Label>
-
-                                <Input
-                                  id="email"
-                                  type="email"
-                                  required
-                                  placeholder="you@example.com"
-                                  value={formData.email}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      email: e.target.value,
-                                    })
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
-                              </div>
-                            </div>
-
-                            {/* PREFERRED CONTACT METHOD */}
-                            <div>
-                              <Label
-                                htmlFor="preferredContactMethod"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                              >
-                                Contact Method *
-                              </Label>
-
-                              <Select
-                                required
-                                value={formData.preferredContactMethod}
-                                onValueChange={(value) =>
-                                  setFormData({
-                                    ...formData,
-                                    preferredContactMethod: value,
-                                    contactDetails:
-                                      value === 'instagram'
-                                        ? ''
-                                        : formData.contactDetails,
-                                  })
-                                }
-                              >
-                                <SelectTrigger
-                                  id="preferredContactMethod"
-                                  className="font-heading text-sm rounded-lg"
-                                >
-                                  <SelectValue placeholder="Select method" />
-                                </SelectTrigger>
-
-                                <SelectContent className="z-[110]">
-                                  <SelectItem value="instagram">
-                                    Instagram
-                                  </SelectItem>
-                                  <SelectItem value="whatsapp">
-                                    WhatsApp
-                                  </SelectItem>
-                                  <SelectItem value="email">
-                                    Email
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {formData.preferredContactMethod === 'instagram' ? (
-                              <div>
-                                <Label
-                                  htmlFor="contactDetails"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                                >
-                                  Instagram Handle *
-                                </Label>
-
-                                <Input
-                                  id="contactDetails"
-                                  required
-                                  value={formData.contactDetails}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      contactDetails: e.target.value,
-                                    })
-                                  }
-                                  placeholder="@yourhandle"
-                                  className="font-heading text-sm rounded-lg"
-                                />
-                              </div>
-                            ) : formData.preferredContactMethod === 'email' ? (
-                              <p className="font-heading text-xs text-foreground/60">
-                                Your delivery email will be used for contact.
+                              <p className="font-heading text-xs md:text-sm text-foreground/75 max-w-md leading-relaxed">
+                                {modalMode === 'claim' ? (
+                                  <>
+                                    Thank you, {formData.fullName || 'friend'}!
+                                    Your order for "{product.name}" has been
+                                    confirmed. Your payment has been received
+                                    successfully.
+                                  </>
+                                ) : (
+                                  <>
+                                    Thank you, {formData.fullName || 'friend'}!
+                                    Your request for "{product.name}" has been
+                                    received. A reply will be sent shortly.
+                                  </>
+                                )}
                               </p>
-                            ) : formData.preferredContactMethod === 'whatsapp' ? (
-                              <p className="font-heading text-xs text-foreground/60">
-                                Your delivery phone number will be used for WhatsApp.
-                              </p>
-                            ) : null}
 
-                            {/* ORDER NOTES */}
-                            <div>
-                              <Label
-                                htmlFor="message"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block"
-                              >
-                                Order Notes (Optional)
-                              </Label>
-
-                              <Textarea
-                                id="message"
-                                rows={2}
-                                value={formData.message}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    message: e.target.value,
-                                  })
-                                }
-                                placeholder="Apartment code, delivery instructions..."
-                                className="font-heading text-sm rounded-lg"
-                              />
-                            </div>
-
-                          </div>
-                        ) : (
-                          /* CUSTOM ORDER FORM */
-                          <div className="space-y-4">
-
-                            <div>
-                              <Label
-                                htmlFor="fullName"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                              >
-                                Full Name *
-                              </Label>
-
-                              <Input
-                                id="fullName"
-                                required
-                                value={formData.fullName}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    fullName: e.target.value,
-                                  })
-                                }
-                                className="font-heading text-sm rounded-lg"
-                              />
-                            </div>
-
-                            <div>
-                              <Label
-                                htmlFor="country"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                              >
-                                Country *
-                              </Label>
-
-                              <Input
-                                id="country"
-                                required
-                                value={formData.country}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    country: e.target.value,
-                                  })
-                                }
-                                className="font-heading text-sm rounded-lg"
-                              />
-                            </div>
-
-                            <div>
-                              <Label
-                                htmlFor="preferredContactMethod"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                              >
-                                Contact Method *
-                              </Label>
-
-                              <Select
-                                required
-                                value={formData.preferredContactMethod}
-                                onValueChange={(value) =>
-                                  setFormData({
-                                    ...formData,
-                                    preferredContactMethod: value,
-                                    contactDetails: '',
-                                  })
-                                }
-                              >
-                                <SelectTrigger
-                                  id="preferredContactMethod"
-                                  className="font-heading text-sm rounded-lg"
+                              {/* Desktop Success Button */}
+                              <div className="pt-4 w-full hidden sm:block">
+                                <Button
+                                  onClick={() => handleDialogChange(false)}
+                                  className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-3.5 font-heading text-xs uppercase tracking-widest"
                                 >
-                                  <SelectValue placeholder="Select method" />
-                                </SelectTrigger>
-
-                                <SelectContent className="z-[110]">
-                                  <SelectItem value="instagram">
-                                    Instagram
-                                  </SelectItem>
-
-                                  <SelectItem value="whatsapp">
-                                    WhatsApp
-                                  </SelectItem>
-
-                                  <SelectItem value="email">
-                                    Email
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-
-                            {formData.preferredContactMethod && (
-                              <div>
-                                <Label
-                                  htmlFor="contactDetails"
-                                  className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                                >
-                                  {formData.preferredContactMethod ===
-                                    'instagram' &&
-                                    'Instagram Handle *'}
-
-                                  {formData.preferredContactMethod ===
-                                    'whatsapp' &&
-                                    'WhatsApp Number *'}
-
-                                  {formData.preferredContactMethod ===
-                                    'email' &&
-                                    'Email Address *'}
-                                </Label>
-
-                                <Input
-                                  id="contactDetails"
-                                  required
-                                  value={formData.contactDetails}
-                                  onChange={(e) =>
-                                    setFormData({
-                                      ...formData,
-                                      contactDetails: e.target.value,
-                                    })
-                                  }
-                                  placeholder={
-                                    formData.preferredContactMethod ===
-                                    'instagram'
-                                      ? '@yourhandle'
-                                      : formData.preferredContactMethod ===
-                                        'whatsapp'
-                                      ? '+1 234 567 890'
-                                      : 'your@email.com'
-                                  }
-                                  className="font-heading text-sm rounded-lg"
-                                />
+                                  Got It
+                                </Button>
                               </div>
-                            )}
+                            </motion.div>
+                          ) : showPayment ? (
+                            /* PAYMENT STATE */
+                            <div className="space-y-4 pb-4">
+                              <div className="space-y-2">
+                                <h2 className="font-heading text-xl md:text-2xl text-foreground">
+                                  Payment
+                                </h2>
+                                <p className="font-heading text-xs md:text-sm text-foreground/70">
+                                  Complete your payment to confirm the order.
+                                </p>
+                              </div>
 
-                            <div>
-                              <Label
-                                htmlFor="message"
-                                className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
+                              <div className="p-3 bg-ivory rounded-xl flex gap-3 items-center border border-foreground/10">
+                                <Image
+                                  src={product.mainImage || ''}
+                                  alt={product.name}
+                                  width={60}
+                                  className="w-14 h-14 object-cover rounded-lg shrink-0"
+                                />
+                                <div>
+                                  <p className="font-heading text-sm text-foreground font-semibold">
+                                    {product.name}
+                                  </p>
+                                  <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">
+                                    ${product.price?.toFixed(2)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {paymentError && (
+                                <p className="font-heading text-xs text-red-500">
+                                  {paymentError}
+                                </p>
+                              )}
+
+                              {paypalClientId ? (
+                                <PayPalScriptProvider
+                                  options={{
+                                    clientId: paypalClientId,
+                                    currency: 'USD',
+                                  }}
+                                >
+                                  <PayPalButtons
+                                    style={{ layout: 'vertical', shape: 'pill' }}
+                                    forceReRender={[product._id, product.price]}
+                                    createOrder={async () => {
+                                      setPaymentError(null);
+                                      const res = await fetch(
+                                        '/api/paypal/create-order',
+                                        {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            productId: product._id,
+                                          }),
+                                        }
+                                      );
+                                      const data = await res.json();
+                                      if (!res.ok) {
+                                        setPaymentError(
+                                          'Could not start PayPal checkout. Please try again.'
+                                        );
+                                        throw new Error(
+                                          data.error || 'create-order failed'
+                                        );
+                                      }
+                                      return data.id;
+                                    }}
+                                    onApprove={async (data) => {
+                                      const res = await fetch(
+                                        '/api/paypal/capture-order',
+                                        {
+                                          method: 'POST',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            orderID: data.orderID,
+                                          }),
+                                        }
+                                      );
+                                      if (!res.ok) {
+                                        setPaymentError(
+                                          'Payment could not be completed. Please try again.'
+                                        );
+                                        return;
+                                      }
+                                      handlePaymentSuccess();
+                                    }}
+                                    onError={() => {
+                                      setPaymentError(
+                                        'PayPal checkout error. Please try again.'
+                                      );
+                                    }}
+                                  />
+                                </PayPalScriptProvider>
+                              ) : (
+                                <div className="py-4 flex justify-center">
+                                  <LoadingSpinner />
+                                </div>
+                              )}
+
+                              {/* Desktop Back Button */}
+                              <button
+                                type="button"
+                                onClick={() => setShowPayment(false)}
+                                className="w-full text-center hidden font-heading text-xs text-foreground/50 hover:text-foreground py-2 transition-colors sm:block"
                               >
-                                Notes / Special Requests
-                              </Label>
-
-                              <Textarea
-                                id="message"
-                                rows={3}
-                                value={formData.message}
-                                onChange={(e) =>
-                                  setFormData({
-                                    ...formData,
-                                    message: e.target.value,
-                                  })
-                                }
-                                placeholder="Any questions or custom preferences..."
-                                className="font-heading text-sm rounded-lg"
-                              />
+                                Back
+                              </button>
                             </div>
+                          ) : (
+                            /* FORM STATE */
+                            <>
+                              <div className="space-y-2">
+                                <h2 className="font-heading text-xl md:text-2xl text-foreground">
+                                  {modalMode === 'claim'
+                                    ? 'Shipping Details'
+                                    : 'Custom Order'}
+                                </h2>
+                                <p className="font-heading text-xs md:text-sm text-foreground/70">
+                                  {modalMode === 'claim'
+                                    ? 'Fill in your delivery details to reserve and complete your order.'
+                                    : 'Leave your contact details to request a custom order. A fitting & measurement guide will be provided after the request.'}
+                                </p>
+                              </div>
 
-                          </div>
-                        )}
+                              <form
+                                id="order-form"
+                                onSubmit={handleSubmit}
+                                className="space-y-4 mt-4 pb-4"
+                              >
+                                {/* PRODUCT PREVIEW */}
+                                <div className="p-3 bg-ivory rounded-xl flex gap-3 items-center border border-foreground/10 mb-2">
+                                  <Image
+                                    src={product.mainImage || ''}
+                                    alt={product.name}
+                                    width={60}
+                                    className="w-14 h-14 object-cover rounded-lg shrink-0"
+                                  />
+                                  <div>
+                                    <p className="font-heading text-sm text-foreground font-semibold">
+                                      {product.name}
+                                    </p>
+                                    <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">
+                                      ${product.price?.toFixed(2)}
+                                    </p>
+                                  </div>
+                                </div>
 
-                        {/* ACTIONS */}
-                        <div className="pt-2 space-y-2">
-                          <Button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-3.5 font-heading text-xs uppercase tracking-widest disabled:opacity-50"
-                          >
-                            {isSubmitting
-                              ? 'Sending...'
-                              : modalMode === 'claim'
-                              ? 'Confirm Shipping & Order'
-                              : 'Submit Request'}
-                          </Button>
+                                {/* READY TO SHIP FORM */}
+                                {modalMode === 'claim' ? (
+                                  <div className="space-y-3.5">
+                                    <div>
+                                      <Label htmlFor="fullName" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                        Full Name *
+                                      </Label>
+                                      <Input
+                                        id="fullName"
+                                        required
+                                        placeholder="John Doe"
+                                        value={formData.fullName}
+                                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                        className="font-heading text-sm rounded-lg"
+                                      />
+                                    </div>
 
-                          <button
-                              type="button"
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div>
+                                        <Label htmlFor="country" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          Country *
+                                        </Label>
+                                        <Input
+                                          id="country"
+                                          required
+                                          placeholder="United States"
+                                          value={formData.country}
+                                          onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label htmlFor="stateRegion" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          State / Region *
+                                        </Label>
+                                        <Input
+                                          id="stateRegion"
+                                          required
+                                          placeholder="California / NY"
+                                          value={formData.stateRegion}
+                                          onChange={(e) => setFormData({ ...formData, stateRegion: e.target.value })}
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div>
+                                        <Label htmlFor="city" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          City *
+                                        </Label>
+                                        <Input
+                                          id="city"
+                                          required
+                                          placeholder="Los Angeles"
+                                          value={formData.city}
+                                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label htmlFor="postalCode" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          Postal / ZIP Code *
+                                        </Label>
+                                        <Input
+                                          id="postalCode"
+                                          required
+                                          placeholder="90001"
+                                          value={formData.postalCode}
+                                          onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <Label htmlFor="streetAddress" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                        Street Address *
+                                      </Label>
+                                      <Input
+                                        id="streetAddress"
+                                        required
+                                        placeholder="123 Main Street, Apt 4B"
+                                        value={formData.streetAddress}
+                                        onChange={(e) => setFormData({ ...formData, streetAddress: e.target.value })}
+                                        className="font-heading text-sm rounded-lg"
+                                      />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                      <div>
+                                        <Label htmlFor="phone" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          Phone (with Country Code) *
+                                        </Label>
+                                        <Input
+                                          id="phone"
+                                          type="tel"
+                                          required
+                                          placeholder="+1 234 567 8900"
+                                          value={formData.phone}
+                                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label htmlFor="email" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          Email Address *
+                                        </Label>
+                                        <Input
+                                          id="email"
+                                          type="email"
+                                          required
+                                          placeholder="you@example.com"
+                                          value={formData.email}
+                                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      <Label htmlFor="preferredContactMethod" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                        Contact Method *
+                                      </Label>
+                                      <Select
+                                        required
+                                        value={formData.preferredContactMethod}
+                                        onValueChange={(value) =>
+                                          setFormData({
+                                            ...formData,
+                                            preferredContactMethod: value,
+                                            contactDetails: value === 'instagram' ? '' : formData.contactDetails,
+                                          })
+                                        }
+                                      >
+                                        <SelectTrigger id="preferredContactMethod" className="font-heading text-sm rounded-lg">
+                                          <SelectValue placeholder="Select method" />
+                                        </SelectTrigger>
+                                        <SelectContent className="z-[110]">
+                                          <SelectItem value="instagram">Instagram</SelectItem>
+                                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                          <SelectItem value="email">Email</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    {formData.preferredContactMethod === 'instagram' ? (
+                                      <div>
+                                        <Label htmlFor="contactDetails" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                          Instagram Handle *
+                                        </Label>
+                                        <Input
+                                          id="contactDetails"
+                                          required
+                                          value={formData.contactDetails}
+                                          onChange={(e) => setFormData({ ...formData, contactDetails: e.target.value })}
+                                          placeholder="@yourhandle"
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                    ) : formData.preferredContactMethod === 'email' ? (
+                                      <p className="font-heading text-xs text-foreground/60">Your delivery email will be used for contact.</p>
+                                    ) : formData.preferredContactMethod === 'whatsapp' ? (
+                                      <p className="font-heading text-xs text-foreground/60">Your delivery phone number will be used for WhatsApp.</p>
+                                    ) : null}
+
+                                    <div>
+                                      <Label htmlFor="message" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1 block">
+                                        Order Notes (Optional)
+                                      </Label>
+                                      <Textarea
+                                        id="message"
+                                        rows={2}
+                                        value={formData.message}
+                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                        placeholder="Apartment code, delivery instructions..."
+                                        className="font-heading text-sm rounded-lg"
+                                      />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  /* CUSTOM ORDER FORM */
+                                  <div className="space-y-4">
+                                    <div>
+                                      <Label htmlFor="fullName" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block">
+                                        Full Name *
+                                      </Label>
+                                      <Input
+                                        id="fullName"
+                                        required
+                                        value={formData.fullName}
+                                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                        className="font-heading text-sm rounded-lg"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <Label htmlFor="country" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block">
+                                        Country *
+                                      </Label>
+                                      <Input
+                                        id="country"
+                                        required
+                                        value={formData.country}
+                                        onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+                                        className="font-heading text-sm rounded-lg"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <Label htmlFor="preferredContactMethod" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block">
+                                        Contact Method *
+                                      </Label>
+                                      <Select
+                                        required
+                                        value={formData.preferredContactMethod}
+                                        onValueChange={(value) =>
+                                          setFormData({ ...formData, preferredContactMethod: value, contactDetails: '' })
+                                        }
+                                      >
+                                        <SelectTrigger id="preferredContactMethod" className="font-heading text-sm rounded-lg">
+                                          <SelectValue placeholder="Select method" />
+                                        </SelectTrigger>
+                                        <SelectContent className="z-[110]">
+                                          <SelectItem value="instagram">Instagram</SelectItem>
+                                          <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                                          <SelectItem value="email">Email</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    {formData.preferredContactMethod && (
+                                      <div>
+                                        <Label htmlFor="contactDetails" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block">
+                                          {formData.preferredContactMethod === 'instagram' && 'Instagram Handle *'}
+                                          {formData.preferredContactMethod === 'whatsapp' && 'WhatsApp Number *'}
+                                          {formData.preferredContactMethod === 'email' && 'Email Address *'}
+                                        </Label>
+                                        <Input
+                                          id="contactDetails"
+                                          required
+                                          value={formData.contactDetails}
+                                          onChange={(e) => setFormData({ ...formData, contactDetails: e.target.value })}
+                                          placeholder={
+                                            formData.preferredContactMethod === 'instagram' ? '@yourhandle' : formData.preferredContactMethod === 'whatsapp' ? '+1 234 567 890' : 'your@email.com'
+                                          }
+                                          className="font-heading text-sm rounded-lg"
+                                        />
+                                      </div>
+                                    )}
+
+                                    <div>
+                                      <Label htmlFor="message" className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block">
+                                        Notes / Special Requests
+                                      </Label>
+                                      <Textarea
+                                        id="message"
+                                        rows={3}
+                                        value={formData.message}
+                                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                        placeholder="Any questions or custom preferences..."
+                                        className="font-heading text-sm rounded-lg"
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Desktop Actions inside scroll container */}
+                                <div className="pt-2 hidden flex-col space-y-2 sm:flex">
+                                  <Button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-3.5 font-heading text-xs uppercase tracking-widest disabled:opacity-50"
+                                  >
+                                    {isSubmitting
+                                      ? 'Sending...'
+                                      : modalMode === 'claim'
+                                      ? 'Confirm Shipping & Order'
+                                      : 'Submit Request'}
+                                  </Button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDialogChange(false)}
+                                    className="w-full text-center font-heading text-xs text-foreground/50 hover:text-foreground py-2 transition-colors"
+                                  >
+                                    Close
+                                  </button>
+                                </div>
+                              </form>
+                            </>
+                          )}
+                        </div>
+
+                        {/* STICKY FOOTER ACTIONS (MOBILE ONLY) */}
+                        <div className="shrink-0 border-t border-foreground/10 bg-background/90 p-4 pb-8 backdrop-blur-md sm:hidden">
+                          {isSubmittedSuccess ? (
+                            <Button
                               onClick={() => handleDialogChange(false)}
+                              className="w-full bg-foreground text-background transition-all rounded-full py-3.5 font-heading text-xs uppercase tracking-widest shadow-md"
+                            >
+                              Got It
+                            </Button>
+                          ) : showPayment ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowPayment(false)}
                               className="w-full text-center font-heading text-xs text-foreground/50 hover:text-foreground py-2 transition-colors"
                             >
-                              Close
+                              Back
                             </button>
+                          ) : (
+                            <>
+                              <Button
+                                type="submit"
+                                form="order-form"
+                                disabled={isSubmitting}
+                                className="w-full bg-foreground text-background transition-all rounded-full py-3.5 font-heading text-xs uppercase tracking-widest shadow-md disabled:opacity-50"
+                              >
+                                {isSubmitting
+                                  ? 'Sending...'
+                                  : modalMode === 'claim'
+                                  ? 'Confirm & Order'
+                                  : 'Submit Request'}
+                              </Button>
+                              <button
+                                type="button"
+                                onClick={() => handleDialogChange(false)}
+                                className="mt-3 w-full py-1 text-center font-heading text-xs text-foreground/50"
+                              >
+                                Close
+                              </button>
+                            </>
+                          )}
                         </div>
-                      </form>
-                    </>
-                  )}
-                        </div>
-
                       </motion.div>
-                    </motion.div>
+                    </div>
                   )}
                 </AnimatePresence>,
                 document.body
@@ -1159,7 +961,6 @@ export default function ProductDetailPage() {
 
               {/* PRODUCT INFORMATION */}
               <div className="border-t border-foreground/10 divide-y divide-foreground/10">
-
                 {/* DESCRIPTION */}
                 <div className="py-4">
                   <button
@@ -1167,12 +968,9 @@ export default function ProductDetailPage() {
                     className="w-full flex items-center justify-between text-left font-heading text-sm uppercase tracking-wider text-foreground"
                   >
                     <span>Description & Details</span>
-
                     <ChevronDown
                       className={`w-4 h-4 transition-transform duration-200 ${
-                        activeAccordion === 'desc'
-                          ? 'rotate-180'
-                          : ''
+                        activeAccordion === 'desc' ? 'rotate-180' : ''
                       }`}
                     />
                   </button>
@@ -1180,18 +978,9 @@ export default function ProductDetailPage() {
                   <AnimatePresence>
                     {activeAccordion === 'desc' && (
                       <motion.div
-                        initial={{
-                          opacity: 0,
-                          height: 0,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          height: 'auto',
-                        }}
-                        exit={{
-                          opacity: 0,
-                          height: 0,
-                        }}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden mt-3 pb-1"
                       >
                         <p className="font-paragraph text-xs md:text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
@@ -1211,12 +1000,9 @@ export default function ProductDetailPage() {
                     className="w-full flex items-center justify-between text-left font-heading text-sm uppercase tracking-wider text-foreground"
                   >
                     <span>Materials & Care</span>
-
                     <ChevronDown
                       className={`w-4 h-4 transition-transform duration-200 ${
-                        activeAccordion === 'materials'
-                          ? 'rotate-180'
-                          : ''
+                        activeAccordion === 'materials' ? 'rotate-180' : ''
                       }`}
                     />
                   </button>
@@ -1224,18 +1010,9 @@ export default function ProductDetailPage() {
                   <AnimatePresence>
                     {activeAccordion === 'materials' && (
                       <motion.div
-                        initial={{
-                          opacity: 0,
-                          height: 0,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          height: 'auto',
-                        }}
-                        exit={{
-                          opacity: 0,
-                          height: 0,
-                        }}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden mt-3 pb-1 space-y-2 text-xs md:text-sm text-foreground/80 font-paragraph"
                       >
                         {product.materials && (
@@ -1246,7 +1023,6 @@ export default function ProductDetailPage() {
                             {product.materials}
                           </p>
                         )}
-
                         <p>
                           <strong className="font-heading text-foreground">
                             Care Instructions:
@@ -1258,7 +1034,6 @@ export default function ProductDetailPage() {
                     )}
                   </AnimatePresence>
                 </div>
-
               </div>
             </motion.div>
           </div>
