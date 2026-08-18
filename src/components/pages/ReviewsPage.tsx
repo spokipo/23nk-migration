@@ -16,6 +16,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ContactFormSubmissions, Reviews } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
+import { sendOrderNotification } from '@/integrations/notifications';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -179,7 +180,7 @@ export default function ReviewsPage() {
       if (formData.contactDetails) emailData['Contact Details'] = formData.contactDetails;
       if (formData.message) emailData['Message / Notes'] = formData.message;
 
-      await fetch(
+      const sendEmailPromise = fetch(
         'https://formsubmit.co/ajax/4beb55a3be4e0d00a05176afdef4a527',
         {
           method: 'POST',
@@ -190,6 +191,14 @@ export default function ReviewsPage() {
           body: JSON.stringify(emailData),
         }
       );
+
+      const sendTelegramPromise = sendOrderNotification({
+        title: '✨ Gallery Custom Remake Request',
+        productName: productName,
+        formData: formData,
+      });
+
+      await Promise.allSettled([sendEmailPromise, sendTelegramPromise]);
 
       setIsSubmittedSuccess(true);
     } catch (error) {
@@ -391,12 +400,12 @@ export default function ReviewsPage() {
                   Custom Order
                 </Button>
                 <button
-  type="button"
-  onClick={handleCloseReview}
-  className="w-full py-2 text-center font-heading text-xs text-foreground/50 hover:text-foreground transition-colors"
->
-  Close
-</button>
+                  type="button"
+                  onClick={handleCloseReview}
+                  className="w-full py-2 text-center font-heading text-xs text-foreground/50 hover:text-foreground transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </motion.div>
           </div>
@@ -657,7 +666,7 @@ export default function ReviewsPage() {
                   <button
                     type="button"
                     onClick={handleCloseForm}
-                    className="w-full py-2 text-center font-heading text-xs uppercase tracking-wider text-foreground/50 hover:text-foreground transition-colors"
+                    className="w-full py-2 text-center font-heading text-xs text-foreground/50 hover:text-foreground transition-colors"
                   >
                     Close
                   </button>

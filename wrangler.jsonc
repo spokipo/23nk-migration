@@ -8,7 +8,7 @@
     "directory": "./dist"
   },
   "vars": {
-    "PAYPAL_CLIENT_ID": "AWanTMhgrXAJXCt7xi7DjZc4r_IhRO-VHFPXURWMk2Ud-Movu0MkH06l7sADFxT4vHLDsb6yVz3Fxw3K",
-    "PAYPAL_ENV": "sandbox"
+    "PAYPAL_CLIENT_ID": "AZqgRoEB99rDqLJVbZVHU2p9huLAo5_y7CKHaTAgvO4z7T-Oyb6w-eM-XioHQlpA816_9lfgktK1VwFB",
+    "PAYPAL_ENV": "live"
   }
 }

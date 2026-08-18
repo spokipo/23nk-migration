@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ContactFormSubmissions } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
+import { sendOrderNotification } from '@/integrations/notifications';
 import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X } from 'lucide-react';
@@ -43,7 +44,7 @@ export default function OrderModal({
   const { toast } = useToast();
 
   const [mounted, setMounted] = useState(false);
-  const [isMobile, setIsMobile] = useState(false); // Стейт для определения устройства
+  const [isMobile, setIsMobile] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -64,15 +65,14 @@ export default function OrderModal({
     message: '',
   });
 
-  // Инициализация SSR и проверка ширины экрана
   useEffect(() => {
     setMounted(true);
     const checkIsMobile = () => {
       setIsMobile(window.innerWidth < 640);
     };
-    checkIsMobile(); // Проверяем сразу
+    checkIsMobile();
     window.addEventListener('resize', checkIsMobile);
-    return () => window.removeEventListener('resize', checkIsMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -221,7 +221,15 @@ export default function OrderModal({
       if (modalMode === 'claim') {
         setShowPayment(true);
       } else {
-        await sendEmailNotification();
+        await Promise.allSettled([
+          sendEmailNotification(),
+          sendOrderNotification({
+            title: '✨ Custom Order Request',
+            productName: product.name,
+            price: product.price,
+            formData: formData,
+          }),
+        ]);
         setIsSubmittedSuccess(true);
       }
     } catch (error) {
@@ -237,7 +245,6 @@ export default function OrderModal({
 
   if (!mounted) return null;
 
-  // Динамические варианты анимаций: шторка для телефонов, плавный зум для десктопов
   const modalAnimationVariants = isMobile
     ? {
         initial: { y: '100%', opacity: 1, scale: 1 },
@@ -378,11 +385,15 @@ export default function OrderModal({
                                 setPaymentError('Payment could not be completed. Please try again.');
                                 return;
                               }
-                              try {
-                                await sendEmailNotification();
-                              } catch (emailErr) {
-                                console.error('Email failed:', emailErr);
-                              }
+                              await Promise.allSettled([
+                                sendEmailNotification(),
+                                sendOrderNotification({
+                                  title: '🔥 PAID ORDER (PayPal)',
+                                  productName: product.name,
+                                  price: product.price,
+                                  formData: formData,
+                                }),
+                              ]);
                               setIsSubmittedSuccess(true);
                             } catch (err) {
                               setPaymentError('An error occurred during payment processing.');
