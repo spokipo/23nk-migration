@@ -236,7 +236,7 @@ export default function OrderModal({
 
   if (!mounted) return null;
 
-  const modalAnimationVariants = isMobile
+  const modalAnimationVariants: any = isMobile
     ? {
         initial: { y: '100%', opacity: 1 },
         animate: { y: 0, opacity: 1 },
@@ -247,7 +247,7 @@ export default function OrderModal({
         initial: { opacity: 0, scale: 0.95, y: 10 },
         animate: { opacity: 1, scale: 1, y: 0 },
         exit: { opacity: 0, scale: 0.95, y: 10 },
-        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1]},
       };
 
   return createPortal(

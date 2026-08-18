@@ -30,70 +30,70 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <HomePage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'home',
         },
       },
       {
         path: "catalog",
         element: <CatalogPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'catalog',
         },
       },
       {
         path: "collection/:id",
         element: <Navigate to="/catalog" replace />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'collection',
         },
       },
       {
         path: "product/:id",
         element: <ProductDetailPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'product-detail',
         },
       },
       {
         path: "reviews",
         element: <ReviewsPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'reviews',
         },
       },
       {
         path: "review/:id",
         element: <ReviewDetailPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'review-detail',
         },
       },
       {
         path: "delivery",
         element: <DeliveryPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'delivery',
         },
       },
       {
         path: "contact",
         element: <ContactPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'contact',
         },
       },
       {
         path: "privacy-policy",
         element: <PrivacyPolicyPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'privacy-policy',
         },
       },
       {
         path: "terms-conditions",
         element: <TermsConditionsPage />,
-        routeMetadata: {
+        handle: {
           pageIdentifier: 'terms-conditions',
         },
       },

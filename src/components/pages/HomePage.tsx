@@ -29,8 +29,8 @@ interface Review {
   image?: string | ImageObject;
   photo?: string | ImageObject;
   src?: string | ImageObject;
-  _createdDate?: string | Date;
-  createdAt?: string | Date;
+  _createdDate?: Date;
+  createdAt?: Date;
 }
 
 export default function HomePage() {
@@ -151,7 +151,7 @@ export default function HomePage() {
       <section className="relative w-full h-[65vh] sm:h-[75vh] min-h-[480px] max-h-[850px] overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <Image
-            src="https://static.wixstatic.com/media/908bf1_c161a54bb80f49dfb341f5c5e590ba24~mv2.jpeg#originWidth=1170&originHeight=1337"
+            src="/hero.webp#originWidth=1170&originHeight=1337"
             width={1920}
             className="w-full h-full object-cover"
           />

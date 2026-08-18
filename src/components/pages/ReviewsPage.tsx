@@ -22,6 +22,16 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+// Хелпер для конвертации Wix URL в стандартный HTTPS
+const getValidImageUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('wix:image://v1/')) {
+    const match = url.match(/wix:image:\/\/v1\/([^\/]+)/);
+    return match ? `https://static.wixstatic.com/media/${match[1]}` : url;
+  }
+  return url;
+};
+
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -95,11 +105,14 @@ export default function ReviewsPage() {
       review?.src ||
       '';
 
+    let extractedUrl = '';
     if (typeof rawImage === 'object' && rawImage !== null) {
-      return rawImage.url || rawImage.src || '';
+      extractedUrl = rawImage.url || rawImage.src || '';
+    } else {
+      extractedUrl = rawImage;
     }
 
-    return rawImage;
+    return getValidImageUrl(extractedUrl);
   };
 
   const getProductName = (review: any) => {
@@ -126,6 +139,31 @@ export default function ReviewsPage() {
   const handleOpenReview = (review: Reviews) => {
     setSelectedReview(review);
     setIsReviewImageLoading(true);
+
+    const currentSrc = getImageUrl(review);
+    if (currentSrc) {
+      const img = new window.Image();
+      img.src = currentSrc;
+
+      const handleReady = () => {
+        if ('decode' in img) {
+          img.decode().catch(() => {}).finally(() => {
+            setIsReviewImageLoading(false);
+          });
+        } else {
+          setIsReviewImageLoading(false);
+        }
+      };
+
+      if (img.complete) {
+        handleReady();
+      } else {
+        img.onload = handleReady;
+        img.onerror = () => setIsReviewImageLoading(false);
+      }
+    } else {
+      setIsReviewImageLoading(false);
+    }
   };
 
   const handleCloseReview = () => {
@@ -148,6 +186,21 @@ export default function ReviewsPage() {
   const handleOpenZoom = () => {
     setIsZoomImageLoading(true);
     setIsFullscreenZoom(true);
+
+    const currentSrc = selectedReview ? getImageUrl(selectedReview) : '';
+    if (currentSrc) {
+      const img = new window.Image();
+      img.src = currentSrc;
+      
+      if (img.complete) {
+        setIsZoomImageLoading(false);
+      } else {
+        img.onload = () => setIsZoomImageLoading(false);
+        img.onerror = () => setIsZoomImageLoading(false);
+      }
+    } else {
+      setIsZoomImageLoading(false);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -190,18 +243,34 @@ export default function ReviewsPage() {
     }
   };
 
-  const modalAnimationVariants = isMobile
+  const modalAnimationVariants: any = isMobile
     ? {
         initial: { y: '100%', opacity: 1 },
-        animate: { y: 0, opacity: 1 },
-        exit: { y: '100%', opacity: 1 },
-        transition: { type: 'spring', damping: 20, stiffness: 150 }, // Смягченная пружина
+        animate: { 
+          y: 0, 
+          opacity: 1,
+          transition: { type: 'tween', duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+        },
+        exit: { 
+          y: '100%', 
+          opacity: 1,
+          transition: { type: 'tween', duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+        },
       }
     : {
         initial: { opacity: 0, scale: 0.95, y: 10 },
-        animate: { opacity: 1, scale: 1, y: 0 },
-        exit: { opacity: 0, scale: 0.95, y: 10 },
-        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+        animate: { 
+          opacity: 1, 
+          scale: 1, 
+          y: 0,
+          transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] }
+        },
+        exit: { 
+          opacity: 0, 
+          scale: 0.95, 
+          y: 10,
+          transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] as any}
+        },
       };
 
   return (
@@ -288,6 +357,7 @@ export default function ReviewsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
               onClick={handleCloseReview}
               className="fixed inset-0 bg-black/50 backdrop-blur-[2px]"
             />
@@ -329,10 +399,8 @@ export default function ReviewsPage() {
                     src={getImageUrl(selectedReview)}
                     alt={selectedReview.reviewTitle || 'Review'}
                     fill
-                    onLoad={() => setIsReviewImageLoading(false)}
-                    onError={() => setIsReviewImageLoading(false)}
                     className={`h-full w-full object-cover transition-all duration-700 group-hover/zoom:scale-105 ${
-                      isReviewImageLoading ? 'opacity-0' : 'opacity-100'
+                      isReviewImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                     }`}
                   />
 
@@ -390,6 +458,7 @@ export default function ReviewsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
               onClick={handleCloseForm}
               className="fixed inset-0 bg-black/50 backdrop-blur-[2px]"
             />
@@ -669,10 +738,8 @@ export default function ReviewsPage() {
                 src={getImageUrl(selectedReview)}
                 alt={selectedReview.reviewTitle || 'Zoomed View'}
                 fittingType="fit"
-                onLoad={() => setIsZoomImageLoading(false)}
-                onError={() => setIsZoomImageLoading(false)}
-                className={`max-w-[92vw] max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain rounded-xl sm:rounded-2xl shadow-2xl transition-opacity duration-300 ${
-                  isZoomImageLoading ? 'opacity-0' : 'opacity-100'
+                className={`max-w-[92vw] max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain rounded-xl sm:rounded-2xl shadow-2xl transition-all duration-500 ${
+                  isZoomImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                 }`}
               />
             </div>

@@ -95,7 +95,7 @@ export class BaseCrudService {
     multiReferences?: Record<string, any>
   ): Promise<T> {
     try {
-      const result = (await wixClient.items.insert(collectionId, itemData as Record<string, unknown>)) as T;
+      const result = (await wixClient.items.insert(collectionId, itemData as any)) as T;
 
       if (multiReferences && Object.keys(multiReferences).length > 0 && result._id) {
         for (const [propertyName, refIds] of Object.entries(multiReferences)) {
