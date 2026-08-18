@@ -17,6 +17,7 @@ import { ContactFormSubmissions, Reviews } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
 import { sendOrderNotification } from '@/integrations/notifications';
+import { Country } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -29,6 +30,9 @@ export default function ReviewsPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Стейт для страны
+  const [selectedCountryCode, setSelectedCountryCode] = useState('');
 
   // Fullscreen Zoom Lightbox
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
@@ -115,6 +119,7 @@ export default function ReviewsPage() {
       contactDetails: '',
       message: '',
     });
+    setSelectedCountryCode('');
     setIsSubmittedSuccess(false);
   };
 
@@ -153,7 +158,7 @@ export default function ReviewsPage() {
     const productName = getProductName(selectedReview);
 
     try {
-      const messageContent = `Custom Order Request.\n\nProduct: ${productName}\n\nAdditional Notes: ${formData.message}`;
+      const messageContent = `Custom Order Request.\n\nProduct: ${productName}\nCountry: ${formData.country}\n\nAdditional Notes: ${formData.message}`;
 
       const submission: ContactFormSubmissions = {
         _id: crypto.randomUUID(),
@@ -190,7 +195,7 @@ export default function ReviewsPage() {
         initial: { y: '100%', opacity: 1 },
         animate: { y: 0, opacity: 1 },
         exit: { y: '100%', opacity: 1 },
-        transition: { type: 'spring', damping: 28, stiffness: 300 },
+        transition: { type: 'spring', damping: 20, stiffness: 150 }, // Смягченная пружина
       }
     : {
         initial: { opacity: 0, scale: 0.95, y: 10 },
@@ -489,24 +494,31 @@ export default function ReviewsPage() {
                       </div>
 
                       <div>
-                        <Label
-                          htmlFor="country"
-                          className="mb-1 block font-heading text-[11px] uppercase tracking-wider text-foreground/70"
-                        >
-                          Country *
-                        </Label>
-                        <Input
-                          id="country"
+                        <Label htmlFor="country" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-1.5 block">Country *</Label>
+                        <Select
                           required
-                          value={formData.country}
-                          onChange={(event) =>
+                          value={selectedCountryCode}
+                          onValueChange={(code) => {
+                            setSelectedCountryCode(code);
                             setFormData({
                               ...formData,
-                              country: event.target.value,
-                            })
-                          }
-                          className="rounded-lg font-heading text-base sm:text-sm"
-                        />
+                              country: Country.getCountryByCode(code)?.name || '',
+                            });
+                          }}
+                        >
+                          <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg">
+                            <SelectValue placeholder="Select Country..." />
+                          </SelectTrigger>
+                          <SelectContent className="z-[110] max-h-60">
+                            {Country.getAllCountries()
+                              .filter((c) => c.isoCode !== 'RU' && c.isoCode !== 'BY')
+                              .map((c) => (
+                                <SelectItem key={c.isoCode} value={c.isoCode}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       <div>

@@ -16,6 +16,7 @@ type ImageData = {
 }
 
 const getImageData = (url: string, imageProps: ImageProps): ImageData | undefined => {
+  // wix:image://v1/${uri}/${filename}#originWidth=${width}&originHeight=${height}
   const wixImagePrefix = 'wix:image://v1/'
   if (url.startsWith(wixImagePrefix)) {
     const uri = url.replace(wixImagePrefix, '').split('#')[0].split('/')[0]
@@ -52,16 +53,16 @@ export type ImageProps = ImgHTMLAttributes<HTMLImageElement> & {
   originHeight?: number
   focalPointX?: number
   focalPointY?: number
-  fill?: boolean // Перехватываем пропс
 }
 
 type WixImageProps = Omit<ImageProps, 'src'> & { data: ImageData }
 const WixImage = forwardRef<HTMLImageElement, WixImageProps>(
-  ({ data, fittingType = 'fill', fill, ...imgProps }, parentRef) => {
+  ({ data, fittingType = 'fill', ...imgProps }, parentRef) => {
     const ref = useRef<HTMLImageElement | null>(null)
     const size = useSize(ref)
     const { width, height, focalPoint } = data
 
+    // Expose the ref to the parent component
     useImperativeHandle(parentRef, () => ref.current as HTMLImageElement)
 
     if (!size) {
@@ -81,10 +82,11 @@ const WixImage = forwardRef<HTMLImageElement, WixImageProps>(
 )
 WixImage.displayName = 'WixImage'
 
-export const Image = forwardRef<HTMLImageElement, ImageProps>(({ src, fill, ...props }, ref) => {
+export const Image = forwardRef<HTMLImageElement, ImageProps>(({ src, ...props }, ref) => {
   const [imgSrc, setImgSrc] = useState<string | undefined>(src)
 
   useEffect(() => {
+    // If src prop changes, update the imgSrc state
     setImgSrc((prev) => {
       if (prev !== src) {
         return src

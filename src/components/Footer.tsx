@@ -1,6 +1,5 @@
 import { Instagram, Mail } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { FaPaypal, FaCcVisa, FaCcMastercard } from 'react-icons/fa';
 
 export default function Footer() {
   return (
@@ -57,12 +56,6 @@ export default function Footer() {
           <p className="font-heading text-xs md:text-sm text-foreground/60">
             © {new Date().getFullYear()} I23NK. All rights reserved. <Link to="/privacy-policy" className="hover:text-soft-gold transition-colors">Privacy Policy</Link> · <Link to="/terms-conditions" className="hover:text-soft-gold transition-colors">Terms & Conditions</Link>
           </p>
-        </div>
-
-        <div className="mt-6 flex w-full items-center justify-center gap-4" aria-label="Accepted payment methods">
-          <FaPaypal className="h-7 w-auto" aria-label="PayPal" title="PayPal" />
-          <FaCcVisa className="h-7 w-auto" aria-label="Visa" title="Visa" />
-          <FaCcMastercard className="h-7 w-auto" aria-label="Mastercard" title="Mastercard" />
         </div>
       </div>
     </footer>

@@ -1,22 +1,49 @@
 import Footer from '@/components/Footer';
 import Header from '@/components/Header';
+import OrderModal from '@/components/OrderModal';
 import { Button } from '@/components/ui/button';
 import { Image } from '@/components/ui/image';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Products } from '@/entities';
 import { BaseCrudService } from '@/integrations';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, ZoomIn, X, ChevronLeft } from 'lucide-react';
+import { ChevronDown, ChevronLeft, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import OrderModal from '@/components/OrderModal';
+import { Link, useParams } from 'react-router-dom';
 
-export default function ProductDetailPage() {
-  const { id } = useParams<{ id: string }>();
+// Хелпер для конвертации Wix URL в стандартный HTTPS для предзагрузки
+const getValidImageUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('wix:image://v1/')) {
+    const match = url.match(/wix:image:\/\/v1\/([^\/]+)/);
+    return match ? `https://static.wixstatic.com/media/${match[1]}` : url;
+  }
+  return url;
+};
+
+interface ProductDetailPageProps {
+  id?: string;
+}
+
+export default function ProductDetailPage(props: ProductDetailPageProps) {
+  const params = useParams<{ id?: string }>();
+
+  const getProductId = () => {
+    if (props.id) return props.id;
+    if (params?.id) return params.id;
+    if (typeof window !== 'undefined') {
+      const segments = window.location.pathname.split('/').filter(Boolean);
+      return segments[segments.length - 1] || '';
+    }
+    return '';
+  };
+
+  const id = getProductId();
 
   const [product, setProduct] = useState<Products | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Products[]>([]);
   const [currentImage, setCurrentImage] = useState(0);
+  const [isMainImageLoading, setIsMainImageLoading] = useState(true);
   
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
   const [isZoomImageLoading, setIsZoomImageLoading] = useState(true);
@@ -53,6 +80,40 @@ export default function ProductDetailPage() {
     setActiveAccordion('desc');
   }, [id]);
 
+  const images = [
+    product?.mainImage,
+    product?.additionalImage1,
+    product?.additionalImage2,
+  ].filter(Boolean) as string[];
+
+  useEffect(() => {
+    const currentSrc = images[currentImage];
+    if (!currentSrc) return;
+
+    setIsMainImageLoading(true);
+
+    const img = new window.Image();
+    // Конвертируем ссылку для нативного браузерного API
+    img.src = getValidImageUrl(currentSrc);
+
+    const handleReady = () => {
+      if ('decode' in img) {
+        img.decode().catch(() => {}).finally(() => {
+          setIsMainImageLoading(false);
+        });
+      } else {
+        setIsMainImageLoading(false);
+      }
+    };
+
+    if (img.complete) {
+      handleReady();
+    } else {
+      img.onload = handleReady;
+      img.onerror = () => setIsMainImageLoading(false);
+    }
+  }, [currentImage, product?._id]);
+
   useEffect(() => {
     if (isFullscreenZoom) {
       document.body.style.overflow = 'hidden';
@@ -74,15 +135,25 @@ export default function ProductDetailPage() {
     );
   }
 
-  const images = [
-    product.mainImage,
-    product.additionalImage1,
-    product.additionalImage2,
-  ].filter(Boolean) as string[];
+  const handleSelectImage = (index: number) => {
+    if (index !== currentImage) {
+      setCurrentImage(index);
+    }
+  };
 
   const handleOpenZoom = () => {
+    const currentSrc = images[currentImage];
     setIsZoomImageLoading(true);
     setIsFullscreenZoom(true);
+
+    if (currentSrc) {
+      const img = new window.Image();
+      // Конвертируем ссылку для нативного браузерного API
+      img.src = getValidImageUrl(currentSrc);
+      if (img.complete) {
+        setIsZoomImageLoading(false);
+      }
+    }
   };
 
   const handleOpenModal = (mode: 'claim' | 'custom') => {
@@ -101,7 +172,6 @@ export default function ProductDetailPage() {
       <main className="py-8 md:py-16">
         <div className="max-w-[120rem] mx-auto px-4 md:px-20">
           
-          {/* BREADCRUMBS (ХЛЕБНАЯ КРОШКА) */}
           <div className="mb-6">
             <Link 
               to="/catalog" 
@@ -114,23 +184,33 @@ export default function ProductDetailPage() {
 
           <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-start">
             
-            {/* PRODUCT IMAGES */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
             >
               <div 
-                className="bg-ivory rounded-2xl overflow-hidden mb-4 aspect-square relative shadow-sm group cursor-zoom-in"
+                className="bg-ivory rounded-2xl overflow-hidden mb-4 aspect-square relative shadow-sm group cursor-zoom-in flex items-center justify-center"
                 onClick={handleOpenZoom}
               >
+                <div 
+                  className={`absolute inset-0 z-10 bg-ivory flex items-center justify-center transition-opacity duration-500 ease-out ${
+                    isMainImageLoading ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  }`}
+                >
+                  <LoadingSpinner />
+                </div>
+
                 <Image
+                  key={`${product._id}-${currentImage}`}
                   src={images[currentImage] || ''}
                   alt={product.name || 'Corset'}
-                  fill
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.02]"
+                  className={`w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-[1.02] ${
+                    isMainImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+                  }`}
                 />
-                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none z-20">
                   <div className="bg-black/50 p-3 rounded-full text-white backdrop-blur-sm transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
                     <ZoomIn className="w-6 h-6" />
                   </div>
@@ -142,7 +222,8 @@ export default function ProductDetailPage() {
                   {images.map((image, index) => (
                     <button
                       key={index}
-                      onClick={() => setCurrentImage(index)}
+                      type="button"
+                      onClick={() => handleSelectImage(index)}
                       className={`relative bg-ivory rounded-xl overflow-hidden aspect-square transition-all ${
                         currentImage === index
                           ? 'ring-2 ring-soft-gold scale-[0.98]'
@@ -152,7 +233,6 @@ export default function ProductDetailPage() {
                       <Image
                         src={image}
                         alt={`${product.name} view ${index + 1}`}
-                        fill
                         className="w-full h-full object-cover"
                       />
                     </button>
@@ -161,7 +241,6 @@ export default function ProductDetailPage() {
               )}
             </motion.div>
 
-            {/* PRODUCT DETAILS */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
@@ -193,7 +272,6 @@ export default function ProductDetailPage() {
                 </Button>
               </div>
 
-              {/* PRODUCT ACCORDIONS */}
               <div className="border-t border-foreground/10 divide-y divide-foreground/10">
                 <div className="py-4">
                   <button
@@ -259,7 +337,6 @@ export default function ProductDetailPage() {
             </motion.div>
           </div>
 
-          {/* RELATED PRODUCTS */}
           {relatedProducts.length > 0 && (
             <div className="mt-20 md:mt-32 pt-10 border-t border-foreground/10">
               <div className="text-center mb-8 md:mb-12">
@@ -282,7 +359,6 @@ export default function ProductDetailPage() {
                         <Image
                           src={related.mainImage || ''}
                           alt={related.name || 'Corset'}
-                          fill
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       </div>
@@ -301,7 +377,6 @@ export default function ProductDetailPage() {
         </div>
       </main>
 
-      {/* LIGHTBOX WITH CLEAN SPINNER */}
       <AnimatePresence>
         {isFullscreenZoom && (
           <motion.div
@@ -330,13 +405,14 @@ export default function ProductDetailPage() {
               )}
 
               <Image
+                key={`zoom-${product._id}-${currentImage}`}
                 src={images[currentImage] || ''}
                 alt={product.name || 'Zoomed View'}
                 fittingType="fit"
                 onLoad={() => setIsZoomImageLoading(false)}
                 onError={() => setIsZoomImageLoading(false)}
-                className={`max-w-[92vw] max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain rounded-xl sm:rounded-2xl shadow-2xl transition-opacity duration-300 ${
-                  isZoomImageLoading ? 'opacity-0' : 'opacity-100'
+                className={`max-w-[92vw] max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain rounded-xl sm:rounded-2xl shadow-2xl transition-all duration-500 ${
+                  isZoomImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
                 }`}
               />
             </div>
