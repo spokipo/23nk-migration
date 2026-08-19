@@ -14,20 +14,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { title, productName, price, formData } = payload;
 
     const lines = [
-      `✨ <b>${title || 'Новый заказ'}</b>`,
-      productName ? `👗 <b>Product:</b> ${productName}` : '',
-      price ? `💵 <b>Price:</b> $${typeof price === 'number' ? price.toFixed(2) : price}` : '',
+      `* <b>${title || 'New Notification'}</b>`,
+      productName ? `<b>Product:</b> ${productName}` : '',
+      price ? `<b>Price:</b> $${typeof price === 'number' ? price.toFixed(2) : price}` : '',
       `----------------------------------`,
-      formData?.fullName ? `👤 <b>Name:</b> ${formData.fullName}` : '',
-      formData?.country ? `🌍 <b>Country:</b> ${formData.country}` : '',
-      formData?.city ? `🏙 <b>City/Region:</b> ${formData.city} ${formData.stateRegion ? `(${formData.stateRegion})` : ''}` : '',
-      formData?.streetAddress ? `📍 <b>Address:</b> ${formData.streetAddress}` : '',
-      formData?.postalCode ? `📮 <b>ZIP:</b> ${formData.postalCode}` : '',
-      formData?.phone ? `📱 <b>Phone:</b> <code>${formData.phone}</code>` : '',
-      formData?.email ? `✉️ <b>Email:</b> ${formData.email}` : '',
-      formData?.preferredContactMethod ? `💬 <b>Contact via:</b> ${formData.preferredContactMethod}` : '',
-      formData?.contactDetails ? `🔗 <b>Contact info:</b> <code>${formData.contactDetails}</code>` : '',
-      formData?.message ? `\n📝 <b>Notes:</b>\n<i>${formData.message}</i>` : '',
+      formData?.fullName ? `<b>Name:</b> ${formData.fullName}` : '',
+      formData?.country ? `<b>Country:</b> ${formData.country}` : '',
+      formData?.city ? `<b>City/Region:</b> ${formData.city} ${formData.stateRegion ? `(${formData.stateRegion})` : ''}` : '',
+      formData?.streetAddress ? `<b>Address:</b> ${formData.streetAddress}` : '',
+      formData?.postalCode ? `<b>ZIP:</b> ${formData.postalCode}` : '',
+      formData?.phone ? `<b>Phone:</b> <code>${formData.phone}</code>` : '',
+      formData?.email ? `<b>Email:</b> ${formData.email}` : '',
+      formData?.preferredContactMethod ? `<b>Contact via:</b> ${formData.preferredContactMethod}` : '',
+      formData?.contactDetails ? `<b>Contact info:</b> <code>${formData.contactDetails}</code>` : '',
+      formData?.message ? `\n<b>Notes:</b>\n<i>${formData.message}</i>` : '',
     ].filter(Boolean);
 
     const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {

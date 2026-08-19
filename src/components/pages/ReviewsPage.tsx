@@ -19,8 +19,18 @@ import { BaseCrudService } from '@/integrations';
 import { sendOrderNotification } from '@/integrations/notifications';
 import { Country } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, X, ZoomIn } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CheckCircle2, X } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
+
+// Полный список стран доставки Nova Poshta Global (ISO Alpha-2 коды)
+const NOVA_POSHTA_COUNTRIES = [
+  // Європа
+  'AT', 'UA', 'AL', 'AD', 'BE', 'BG', 'BA', 'VA', 'GB', 'GR', 'GI', 'DK', 'EE', 'IE', 'IS', 'ES', 'IT', 'CY', 'LV', 'LT', 'LI', 'LU', 'MT', 'MD', 'MC', 'NL', 'DE', 'NO', 'MK', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'TR', 'CZ', 'ME', 'HU', 'FI', 'FR', 'HR', 'CH', 'SE',
+  // Північна Америка, Китай та Гонконг
+  'US', 'CA', 'CN', 'HK',
+  // Інший світ
+  'AU', 'AZ', 'DZ', 'AS', 'AO', 'AI', 'AG', 'AR', 'AW', 'AF', 'BS', 'BD', 'BB', 'BH', 'BZ', 'BJ', 'BM', 'BO', 'BQ', 'BW', 'BR', 'VG', 'BN', 'BF', 'BI', 'BT', 'VN', 'VU', 'VI', 'VE', 'AM', 'GA', 'HT', 'GM', 'GH', 'GN', 'GW', 'HN', 'GE', 'GY', 'GP', 'GT', 'GD', 'GL', 'GU', 'DJ', 'DM', 'DO', 'EC', 'ER', 'SZ', 'ET', 'EG', 'ZM', 'ZW', 'IL', 'IN', 'ID', 'IQ', 'JO', 'CV', 'KZ', 'KY', 'KH', 'CM', 'QA', 'KE', 'NE', 'KG', 'CO', 'KM', 'CG', 'CR', 'CI', 'KW', 'CK', 'CW', 'LA', 'LS', 'LR', 'LB', 'MU', 'MR', 'MG', 'YT', 'MO', 'MW', 'MY', 'ML', 'MV', 'MA', 'MQ', 'MH', 'MX', 'MZ', 'MN', 'NA', 'NP', 'NG', 'NI', 'NZ', 'NC', 'AE', 'OM', 'PK', 'PW', 'PS', 'PA', 'PG', 'PY', 'PE', 'ZA', 'MP', 'PR', 'KR', 'RE', 'RW', 'SV', 'WS', 'SA', 'SC', 'BL', 'SN', 'MF', 'SX', 'VC', 'KN', 'LC', 'SG', 'SB', 'TL', 'SL', 'TH', 'PF', 'TW', 'TZ', 'TC', 'TG', 'TO', 'TT', 'TN', 'UG', 'UZ', 'UY', 'FO', 'FJ', 'PH', 'GF', 'TD', 'CL', 'LK', 'JM', 'FM', 'JP'
+];
 
 // Хелпер для конвертации Wix URL в стандартный HTTPS
 const getValidImageUrl = (url: string) => {
@@ -36,7 +46,11 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Reviews | null>(null);
-  const [isReviewImageLoading, setIsReviewImageLoading] = useState(false);
+  
+  // Состояния загрузки
+  const [loadingReviewId, setLoadingReviewId] = useState<string | null>(null);
+  const [isZoomPreparing, setIsZoomPreparing] = useState(false);
+  
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +60,23 @@ export default function ReviewsPage() {
 
   // Fullscreen Zoom Lightbox
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
-  const [isZoomImageLoading, setIsZoomImageLoading] = useState(true);
+
+  // Стейты для десктопного зума
+  const modalImgRef = useRef<HTMLDivElement>(null);
+  const [modalZoomPos, setModalZoomPos] = useState({ x: 0, y: 0 });
+  const [showModalZoom, setShowModalZoom] = useState(false);
+
+  // Стейты для мобильного Pinch-to-Zoom
+  const [touchScale, setTouchScale] = useState(1);
+  const [touchPos, setTouchPos] = useState({ x: 0, y: 0 });
+  const touchState = useRef({
+    startDist: 0,
+    startScale: 1,
+    startX: 0,
+    startY: 0,
+    isPinching: false,
+    isPanning: false,
+  });
 
   // Responsive Animation Trigger
   const [isMobile, setIsMobile] = useState(false);
@@ -96,6 +126,19 @@ export default function ReviewsPage() {
     };
   }, [selectedReview, isFullscreenZoom]);
 
+  // Закрытие модалок на Esc
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFullscreenZoom) handleCloseZoom();
+        else if (isFormOpen) handleCloseForm();
+        else if (selectedReview) handleCloseReview();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreenZoom, isFormOpen, selectedReview]);
+
   const getImageUrl = (review: any) => {
     const rawImage =
       review?.reviewImage ||
@@ -136,40 +179,33 @@ export default function ReviewsPage() {
     setIsSubmittedSuccess(false);
   };
 
+  // ИДЕАЛЬНАЯ ЗАГРУЗКА ПРЕВЬЮ
   const handleOpenReview = (review: Reviews) => {
-    setSelectedReview(review);
-    setIsReviewImageLoading(true);
-
     const currentSrc = getImageUrl(review);
-    if (currentSrc) {
-      const img = new window.Image();
-      img.src = currentSrc;
+    if (!currentSrc) return;
 
-      const handleReady = () => {
-        if ('decode' in img) {
-          img.decode().catch(() => {}).finally(() => {
-            setIsReviewImageLoading(false);
-          });
-        } else {
-          setIsReviewImageLoading(false);
-        }
-      };
+    setLoadingReviewId(review._id);
 
-      if (img.complete) {
-        handleReady();
-      } else {
-        img.onload = handleReady;
-        img.onerror = () => setIsReviewImageLoading(false);
-      }
+    const img = new window.Image();
+    img.src = currentSrc;
+
+    const onReady = () => {
+      setLoadingReviewId(null);
+      setSelectedReview(review);
+    };
+
+    if (img.complete) {
+      onReady();
     } else {
-      setIsReviewImageLoading(false);
+      img.onload = onReady;
+      img.onerror = onReady;
     }
   };
 
   const handleCloseReview = () => {
     setSelectedReview(null);
-    setIsReviewImageLoading(false);
     setIsFullscreenZoom(false);
+    setIsZoomPreparing(false);
   };
 
   const handleOpenForm = (review: Reviews) => {
@@ -183,23 +219,84 @@ export default function ReviewsPage() {
     setIsSubmittedSuccess(false);
   };
 
+  // ИДЕАЛЬНАЯ ЗАГРУЗКА FULLSCREEN ЗУМА
   const handleOpenZoom = () => {
-    setIsZoomImageLoading(true);
-    setIsFullscreenZoom(true);
-
     const currentSrc = selectedReview ? getImageUrl(selectedReview) : '';
-    if (currentSrc) {
-      const img = new window.Image();
-      img.src = currentSrc;
-      
-      if (img.complete) {
-        setIsZoomImageLoading(false);
-      } else {
-        img.onload = () => setIsZoomImageLoading(false);
-        img.onerror = () => setIsZoomImageLoading(false);
-      }
+    if (!currentSrc) return;
+
+    setIsZoomPreparing(true);
+
+    const img = new window.Image();
+    img.src = currentSrc;
+
+    const onReady = () => {
+      setIsZoomPreparing(false);
+      setIsFullscreenZoom(true);
+    };
+
+    if (img.complete) {
+      onReady();
     } else {
-      setIsZoomImageLoading(false);
+      img.onload = onReady;
+      img.onerror = onReady;
+    }
+  };
+
+  const handleCloseZoom = () => {
+    setIsFullscreenZoom(false);
+    setTimeout(() => {
+      setTouchScale(1);
+      setTouchPos({ x: 0, y: 0 });
+    }, 200);
+  };
+
+  // Математика десктопного зума
+  const handleModalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!modalImgRef.current) return;
+    const { left, top, width, height } = modalImgRef.current.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setModalZoomPos({ x, y });
+  };
+
+  // Математика мобильного Pinch-to-Zoom
+  const getDistance = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      touchState.current.isPinching = true;
+      touchState.current.startDist = getDistance(e.touches);
+      touchState.current.startScale = touchScale;
+    } else if (e.touches.length === 1 && touchScale > 1) {
+      touchState.current.isPanning = true;
+      touchState.current.startX = e.touches[0].clientX - touchPos.x;
+      touchState.current.startY = e.touches[0].clientY - touchPos.y;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchState.current.isPinching && e.touches.length === 2) {
+      const newDist = getDistance(e.touches);
+      let newScale = touchState.current.startScale * (newDist / touchState.current.startDist);
+      newScale = Math.max(1, Math.min(newScale, 4));
+      setTouchScale(newScale);
+    } else if (touchState.current.isPanning && e.touches.length === 1 && touchScale > 1) {
+      const newX = e.touches[0].clientX - touchState.current.startX;
+      const newY = e.touches[0].clientY - touchState.current.startY;
+      setTouchPos({ x: newX, y: newY });
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchState.current.isPinching = false;
+    touchState.current.isPanning = false;
+    if (touchScale < 1.05) {
+      setTouchScale(1);
+      setTouchPos({ x: 0, y: 0 });
     }
   };
 
@@ -226,7 +323,7 @@ export default function ReviewsPage() {
       await BaseCrudService.create('contactformsubmissions', submission);
 
       await sendOrderNotification({
-        title: '✨ Gallery Custom Remake Request',
+        title: 'Gallery Custom Remake Request',
         productName: productName,
         formData: formData,
       });
@@ -274,32 +371,46 @@ export default function ReviewsPage() {
       };
 
   return (
-    <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
+    <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20 flex flex-col">
       <Header />
 
-      <main className="py-6 md:py-12">
-        <div className="mx-auto max-w-[120rem] px-4 md:px-20">
-          <div className="mb-6 flex flex-col justify-between border-b border-foreground/10 pb-4 text-center md:mb-10 md:flex-row md:items-end md:text-left">
-            <div>
-              <h1 className="font-heading text-2xl text-foreground md:text-4xl">
-                Customer Gallery
-              </h1>
-              <p className="mt-1 font-paragraph text-xs text-foreground/60 md:text-sm">
-                Real fits & custom styling from the community
-              </p>
-            </div>
+      <main className="flex-1 py-8 md:py-16">
+        <div className="mx-auto max-w-[120rem] px-6 md:px-20">
+          
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-center mb-10 md:mb-16 flex flex-col items-center"
+          >
+            <h1 className="font-heading text-2xl md:text-4xl text-foreground mb-3">
+              Customer Gallery
+            </h1>
+            
+            <p className="font-paragraph text-xs md:text-sm text-foreground/60 max-w-xl text-center leading-relaxed mb-5">
+              Real fits & custom styling from the community
+            </p>
 
-            <div className="hidden font-heading text-xs uppercase tracking-widest text-foreground/50 md:block">
-              {reviews.length} Styled Looks
-            </div>
-          </div>
+            {reviews.length > 0 && (
+              <div className="inline-flex items-center justify-center px-4 py-1.5 rounded-full bg-foreground/5 border border-foreground/10">
+                <span className="font-heading text-[10px] sm:text-xs uppercase tracking-widest text-foreground/70">
+                  {reviews.length} Styled Looks
+                </span>
+              </div>
+            )}
+          </motion.div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <LoadingSpinner />
+            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-14">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="flex flex-col animate-pulse">
+                  <div className="bg-foreground/5 rounded-xl aspect-[3/4] mb-3 sm:mb-4 w-full shadow-sm"></div>
+                  <div className="h-4 bg-foreground/5 rounded w-3/4 mt-1"></div>
+                </div>
+              ))}
             </div>
           ) : reviews.length > 0 ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-14">
               {reviews.map((review, index) => {
                 const imageUrl = getImageUrl(review);
 
@@ -315,7 +426,14 @@ export default function ReviewsPage() {
                     onClick={() => handleOpenReview(review)}
                     className="group relative flex cursor-pointer flex-col"
                   >
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md mb-2.5 sm:mb-3">
+                      
+                      {loadingReviewId === review._id && (
+                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-ivory/80 backdrop-blur-sm transition-opacity">
+                          <LoadingSpinner />
+                        </div>
+                      )}
+
                       <Image
                         src={imageUrl}
                         alt={review.reviewTitle || 'Customer Review'}
@@ -330,8 +448,8 @@ export default function ReviewsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-2.5">
-                      <h3 className="line-clamp-1 font-heading text-xs text-foreground transition-colors group-hover:text-soft-gold sm:text-sm">
+                    <div className="mt-1 flex flex-col px-0.5">
+                      <h3 className="line-clamp-2 font-heading text-xs text-foreground transition-colors group-hover:text-soft-gold sm:text-sm leading-snug">
                         {review.reviewTitle || 'Custom Handcrafted Outfit'}
                       </h3>
                     </div>
@@ -352,7 +470,7 @@ export default function ReviewsPage() {
       {/* --- PREVIEW MODAL --- */}
       <AnimatePresence>
         {selectedReview && !isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground">
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -367,14 +485,12 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl"
+              className="relative z-10 flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-2xl sm:rounded-2xl"
             >
-              {/* Mobile Drag Indicator */}
               <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
                 <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
               </div>
 
-              {/* Desktop Close Button */}
               <button
                 onClick={handleCloseReview}
                 className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
@@ -384,13 +500,12 @@ export default function ReviewsPage() {
               </button>
 
               <div className="modal-scrollbar flex w-full flex-1 flex-col overflow-y-auto sm:flex-row sm:overflow-hidden">
-                {/* Left: Image */}
                 <div
-                  className="group/zoom relative aspect-[3/4] w-full shrink-0 cursor-zoom-in overflow-hidden bg-ivory/50 sm:w-1/2"
+                  className="group relative aspect-[3/4] w-full shrink-0 cursor-zoom-in overflow-hidden bg-ivory/50 sm:w-1/2"
                   onClick={handleOpenZoom}
                 >
-                  {isReviewImageLoading && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-ivory">
+                  {isZoomPreparing && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/10 backdrop-blur-sm transition-opacity">
                       <LoadingSpinner />
                     </div>
                   )}
@@ -399,19 +514,10 @@ export default function ReviewsPage() {
                     src={getImageUrl(selectedReview)}
                     alt={selectedReview.reviewTitle || 'Review'}
                     fill
-                    className={`h-full w-full object-cover transition-all duration-700 group-hover/zoom:scale-105 ${
-                      isReviewImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                    }`}
+                    className="h-full w-full object-cover transition-all duration-700 group-hover:scale-105"
                   />
-
-                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover/zoom:opacity-100">
-                    <div className="translate-y-2 transform rounded-full bg-black/60 p-2.5 text-white backdrop-blur-sm transition-all duration-300 group-hover/zoom:translate-y-0">
-                      <ZoomIn className="h-5 w-5" />
-                    </div>
-                  </div>
                 </div>
 
-                {/* Right: Info & Unified in-flow CTA */}
                 <div className="flex w-full flex-1 flex-col justify-between p-5 sm:w-1/2 sm:overflow-y-auto sm:p-7">
                   <div className="space-y-2.5">
                     <span className="font-heading text-xs uppercase tracking-widest text-soft-gold">
@@ -427,7 +533,6 @@ export default function ReviewsPage() {
                     </p>
                   </div>
 
-                  {/* Actions directly inside scroll flow */}
                   <div className="mt-6 flex flex-col gap-2 border-t border-foreground/10 pt-4 pb-2 sm:pb-0">
                     <Button
                       onClick={() => handleOpenForm(selectedReview)}
@@ -453,7 +558,7 @@ export default function ReviewsPage() {
       {/* --- FORM MODAL --- */}
       <AnimatePresence>
         {isFormOpen && selectedReview && (
-          <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -468,14 +573,12 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl"
+              className="relative z-10 flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-md sm:rounded-2xl"
             >
-              {/* Mobile Drag Indicator */}
               <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
                 <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
               </div>
 
-              {/* Close Button (Desktop Only) */}
               <button
                 onClick={handleCloseForm}
                 className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
@@ -579,14 +682,14 @@ export default function ReviewsPage() {
                             <SelectValue placeholder="Select Country..." />
                           </SelectTrigger>
                           <SelectContent className="z-[110] max-h-60">
-                            {Country.getAllCountries()
-                              .filter((c) => c.isoCode !== 'RU' && c.isoCode !== 'BY')
-                              .map((c) => (
-                                <SelectItem key={c.isoCode} value={c.isoCode}>
-                                  {c.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
+  {Country.getAllCountries()
+    .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
+    .map((c) => (
+      <SelectItem key={c.isoCode} value={c.isoCode}>
+        {c.name}
+      </SelectItem>
+    ))}
+</SelectContent>
                         </Select>
                       </div>
 
@@ -680,7 +783,6 @@ export default function ReviewsPage() {
                         />
                       </div>
 
-                      {/* Unified Submit Buttons */}
                       <div className="pt-3 space-y-2">
                         <Button
                           type="submit"
@@ -706,42 +808,70 @@ export default function ReviewsPage() {
         )}
       </AnimatePresence>
 
-      {/* --- FULLSCREEN LIGHTBOX ZOOM --- */}
+      {/* --- ИДЕАЛЬНАЯ FULLSCREEN МОДАЛКА ЗУМА С ЖЕЛЕЗОБЕТОННЫМ PINCH-TO-ZOOM --- */}
       <AnimatePresence>
         {isFullscreenZoom && selectedReview && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8 cursor-zoom-out"
-            onClick={() => setIsFullscreenZoom(false)}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-sm flex items-center justify-center p-0 sm:p-8 cursor-zoom-out"
+            onClick={handleCloseZoom}
           >
             <button 
-              className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 bg-black/20 hover:bg-black/40 p-2 sm:p-3 rounded-full text-white transition-colors"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full text-white transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
-                setIsFullscreenZoom(false);
+                handleCloseZoom();
               }}
             >
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
 
-            <div className="relative flex items-center justify-center w-full h-full max-w-5xl">
-              {isZoomImageLoading && (
-                <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
-                  <LoadingSpinner />
+            <div className="relative flex items-center justify-center w-full h-full max-w-7xl overflow-hidden sm:overflow-visible">
+              <div
+                ref={modalImgRef}
+                className="relative inline-flex items-center justify-center cursor-crosshair max-w-full max-h-full touch-none"
+                onMouseEnter={() => setShowModalZoom(true)}
+                onMouseLeave={() => setShowModalZoom(false)}
+                onMouseMove={handleModalMouseMove}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onContextMenu={(e) => e.preventDefault()}
+                onClick={(e) => e.stopPropagation()} 
+                style={{ touchAction: 'none' }}
+              >
+                <div className={`transition-opacity duration-300 ${showModalZoom ? 'md:opacity-0' : 'opacity-100'}`}>
+                  <img
+                    key={`zoom-${selectedReview._id}`}
+                    src={getImageUrl(selectedReview)}
+                    alt={selectedReview.reviewTitle || 'Zoomed View'}
+                    draggable={false}
+                    className="max-w-full max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain select-none"
+                    style={{ 
+                      transform: `translate3d(${touchPos.x}px, ${touchPos.y}px, 0) scale(${touchScale})`,
+                      transition: touchState.current.isPinching || touchState.current.isPanning ? 'none' : 'transform 0.2s ease-out',
+                      WebkitUserDrag: 'none'
+                    }}
+                  />
                 </div>
-              )}
-
-              <Image
-                src={getImageUrl(selectedReview)}
-                alt={selectedReview.reviewTitle || 'Zoomed View'}
-                fittingType="fit"
-                className={`max-w-[92vw] max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain rounded-xl sm:rounded-2xl shadow-2xl transition-all duration-500 ${
-                  isZoomImageLoading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-                }`}
-              />
+                
+                {getImageUrl(selectedReview) && (
+                  <div
+                    className={`absolute inset-0 z-20 pointer-events-none hidden md:block transition-opacity duration-150 ${
+                      showModalZoom ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    style={{
+                      backgroundImage: `url(${getImageUrl(selectedReview)})`,
+                      backgroundPosition: `${modalZoomPos.x}% ${modalZoomPos.y}%`,
+                      backgroundSize: '150%',
+                      backgroundRepeat: 'no-repeat',
+                    }}
+                  />
+                )}
+              </div>
             </div>
           </motion.div>
         )}

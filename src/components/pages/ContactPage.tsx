@@ -3,14 +3,33 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ContactFormSubmissions } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
+import { sendOrderNotification } from '@/integrations/notifications';
 import { EmailService } from '@/services/email-service';
+import { Country } from 'country-state-city';
 import { motion } from 'framer-motion';
-import { Check, ChevronDown, Instagram, Mail } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Instagram, Mail, MessageSquare } from 'lucide-react';
+import React, { useState } from 'react';
+
+// Полный список стран доставки Nova Poshta Global (ISO Alpha-2 коды)
+const NOVA_POSHTA_COUNTRIES = [
+  // Європа
+  'AT', 'UA', 'AL', 'AD', 'BE', 'BG', 'BA', 'VA', 'GB', 'GR', 'GI', 'DK', 'EE', 'IE', 'IS', 'ES', 'IT', 'CY', 'LV', 'LT', 'LI', 'LU', 'MT', 'MD', 'MC', 'NL', 'DE', 'NO', 'MK', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'TR', 'CZ', 'ME', 'HU', 'FI', 'FR', 'HR', 'CH', 'SE',
+  // Північна Америка, Китай та Гонконг
+  'US', 'CA', 'CN', 'HK',
+  // Інший світ
+  'AU', 'AZ', 'DZ', 'AS', 'AO', 'AI', 'AG', 'AR', 'AW', 'AF', 'BS', 'BD', 'BB', 'BH', 'BZ', 'BJ', 'BM', 'BO', 'BQ', 'BW', 'BR', 'VG', 'BN', 'BF', 'BI', 'BT', 'VN', 'VU', 'VI', 'VE', 'AM', 'GA', 'HT', 'GM', 'GH', 'GN', 'GW', 'HN', 'GE', 'GY', 'GP', 'GT', 'GD', 'GL', 'GU', 'DJ', 'DM', 'DO', 'EC', 'ER', 'SZ', 'ET', 'EG', 'ZM', 'ZW', 'IL', 'IN', 'ID', 'IQ', 'JO', 'CV', 'KZ', 'KY', 'KH', 'CM', 'QA', 'KE', 'NE', 'KG', 'CO', 'KM', 'CG', 'CR', 'CI', 'KW', 'CK', 'CW', 'LA', 'LS', 'LR', 'LB', 'MU', 'MR', 'MG', 'YT', 'MO', 'MW', 'MY', 'ML', 'MV', 'MA', 'MQ', 'MH', 'MX', 'MZ', 'MN', 'NA', 'NP', 'NG', 'NI', 'NZ', 'NC', 'AE', 'OM', 'PK', 'PW', 'PS', 'PA', 'PG', 'PY', 'PE', 'ZA', 'MP', 'PR', 'KR', 'RE', 'RW', 'SV', 'WS', 'SA', 'SC', 'BL', 'SN', 'MF', 'SX', 'VC', 'KN', 'LC', 'SG', 'SB', 'TL', 'SL', 'TH', 'PF', 'TW', 'TZ', 'TC', 'TG', 'TO', 'TT', 'TN', 'UG', 'UZ', 'UY', 'FO', 'FJ', 'PH', 'GF', 'TD', 'CL', 'LK', 'JM', 'FM', 'JP'
+];
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -21,33 +40,9 @@ export default function ContactPage() {
     contactDetails: '',
   });
 
+  const [selectedCountryCode, setSelectedCountryCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSelectOpen, setIsSelectOpen] = useState(false);
-
-  const selectRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        selectRef.current &&
-        !selectRef.current.contains(event.target as Node)
-      ) {
-        setIsSelectOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () =>
-      document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const contactOptions = [
-    { value: 'email', label: 'Email' },
-    { value: 'instagram', label: 'Instagram' },
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,17 +67,20 @@ export default function ContactPage() {
         message: formData.message,
       };
 
-      await BaseCrudService.create(
-        'contactformsubmissions',
-        submission
-      );
-
+      await BaseCrudService.create('contactformsubmissions', submission);
+      
+      // Отправляем на Email
       await EmailService.sendSubmissionNotification(submission);
+
+      // Отправляем в Telegram без звездочки
+      await sendOrderNotification({
+        title: 'General Contact Inquiry',
+        formData: formData,
+      });
 
       toast({
         title: 'Message Sent!',
-        description:
-          'Thank you for your message. A reply will be sent shortly.',
+        description: 'Thank you for your message. A reply will be sent shortly.',
       });
 
       setFormData({
@@ -92,6 +90,7 @@ export default function ContactPage() {
         preferredContactMethod: '',
         contactDetails: '',
       });
+      setSelectedCountryCode('');
     } catch (error) {
       toast({
         title: 'Error',
@@ -103,293 +102,211 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
+    <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20 flex flex-col">
       <Header />
 
-      <main className="py-12 md:py-20">
+      <main className="flex-1 py-8 md:py-16">
         <div className="max-w-[120rem] mx-auto px-6 md:px-20">
-
-          {/* PAGE HEADER */}
+          
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-12 md:mb-16"
+            className="text-center mb-10 md:mb-16 flex flex-col items-center"
           >
-            <h1 className="font-heading text-3xl md:text-5xl text-foreground mb-4">
+            <h1 className="font-heading text-2xl md:text-4xl text-foreground mb-3">
               Get in Touch
             </h1>
-
-            <p className="font-paragraph text-xs md:text-sm text-foreground/70 max-w-xl mx-auto leading-relaxed">
-              Have a question about custom orders, sizing, or the upcycling
-              process? Assistance is available for any questions or inquiries.
+            <p className="font-paragraph text-xs md:text-sm text-foreground/60 max-w-xl mx-auto text-center leading-relaxed">
+              Have a question about custom orders, sizing, or the upcycling process? 
+              Assistance is available for any questions or inquiries.
             </p>
           </motion.div>
 
-          {/* MAIN CONTENT */}
-          <div className="max-w-lg mx-auto space-y-10 md:space-y-12">
-
-            {/* CONTACT FORM */}
+          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
+            
+            {/* LEFT: CONTACT FORM */}
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-ivory/60 p-6 md:p-8 rounded-2xl border border-foreground/10"
+              className="bg-ivory p-6 md:p-10 rounded-2xl shadow-sm border border-foreground/5"
             >
-              <h2 className="font-heading text-xl md:text-2xl text-foreground mb-6">
-                Send a Message
-              </h2>
+              <div className="flex items-center gap-3 mb-8">
+                <MessageSquare className="w-5 h-5 text-soft-gold" />
+                <h2 className="font-heading text-xl md:text-2xl text-foreground">
+                  Send a Message
+                </h2>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-
-                {/* FULL NAME */}
-                <div>
-                  <Label
-                    htmlFor="fullName"
-                    className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                  >
-                    Full Name *
-                  </Label>
-
-                  <Input
-                    id="fullName"
-                    required
-                    value={formData.fullName}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        fullName: e.target.value,
-                      })
-                    }
-                    className="font-heading text-sm rounded-lg"
-                  />
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <Label htmlFor="fullName" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-2 block">
+                      Full Name *
+                    </Label>
+                    <Input
+                      id="fullName"
+                      required
+                      value={formData.fullName}
+                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                      className="font-heading text-base sm:text-sm rounded-lg bg-background border-foreground/10"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="country" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-2 block">
+                      Country *
+                    </Label>
+                    <Select
+                      required
+                      value={selectedCountryCode}
+                      onValueChange={(code) => {
+                        setSelectedCountryCode(code);
+                        setFormData({
+                          ...formData,
+                          country: Country.getCountryByCode(code)?.name || '',
+                        });
+                      }}
+                    >
+                      <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg bg-background border-foreground/10">
+                        <SelectValue placeholder="Select Country..." />
+                      </SelectTrigger>
+                      <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
+                        {Country.getAllCountries()
+                          .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
+                          .map((c) => (
+                            <SelectItem key={c.isoCode} value={c.isoCode}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                {/* COUNTRY */}
                 <div>
-                  <Label
-                    htmlFor="country"
-                    className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                  >
-                    Country *
-                  </Label>
-
-                  <Input
-                    id="country"
-                    required
-                    value={formData.country}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        country: e.target.value,
-                      })
-                    }
-                    className="font-heading text-sm rounded-lg"
-                  />
-                </div>
-
-                {/* CONTACT METHOD */}
-                <div className="relative" ref={selectRef}>
-                  <Label
-                    htmlFor="preferredContactMethod"
-                    className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                  >
+                  <Label htmlFor="preferredContactMethod" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-2 block">
                     Preferred Contact Method *
                   </Label>
-
-                  <button
-                    type="button"
-                    id="preferredContactMethod"
-                    onClick={() =>
-                      setIsSelectOpen(!isSelectOpen)
+                  <Select
+                    required
+                    value={formData.preferredContactMethod}
+                    onValueChange={(value) =>
+                      setFormData({
+                        ...formData,
+                        preferredContactMethod: value,
+                        contactDetails: '',
+                      })
                     }
-                    className="w-full flex items-center justify-between font-heading text-sm rounded-lg border border-input bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
                   >
-                    <span
-                      className={
-                        formData.preferredContactMethod
-                          ? 'text-foreground'
-                          : 'text-muted-foreground'
-                      }
+                    <SelectTrigger
+                      id="preferredContactMethod"
+                      className="rounded-lg font-heading text-base sm:text-sm bg-background border-foreground/10"
                     >
-                      {contactOptions.find(
-                        (option) =>
-                          option.value ===
-                          formData.preferredContactMethod
-                      )?.label || 'Select a method'}
-                    </span>
-
-                    <ChevronDown
-                      className={`w-4 h-4 opacity-50 transition-transform duration-200 ${
-                        isSelectOpen ? 'rotate-180' : ''
-                      }`}
-                    />
-                  </button>
-
-                  {isSelectOpen && (
-                    <div className="absolute z-50 w-full mt-1 bg-background border border-foreground/10 rounded-lg shadow-lg py-1 overflow-hidden">
-                      {contactOptions.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => {
-                            setFormData({
-                              ...formData,
-                              preferredContactMethod:
-                                option.value,
-                              contactDetails: '',
-                            });
-
-                            setIsSelectOpen(false);
-                          }}
-                          className="w-full flex items-center justify-between px-3 py-2 font-heading text-sm text-left hover:bg-foreground/5 transition-colors"
-                        >
-                          <span>{option.label}</span>
-
-                          {formData.preferredContactMethod ===
-                            option.value && (
-                            <Check className="w-4 h-4 text-foreground" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent
+                      className="z-[110]"
+                      position="popper"
+                      sideOffset={4}
+                    >
+                      <SelectItem value="instagram">Instagram</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                {/* CONTACT DETAILS */}
                 {formData.preferredContactMethod && (
-                  <div>
-                    <Label
-                      htmlFor="contactDetails"
-                      className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                    >
-                      {formData.preferredContactMethod ===
-                        'email' && 'Email Address *'}
-
-                      {formData.preferredContactMethod ===
-                        'instagram' && 'Instagram Handle *'}
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+                    <Label htmlFor="contactDetails" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-2 block mt-1">
+                      {formData.preferredContactMethod === 'email' && 'Email Address *'}
+                      {formData.preferredContactMethod === 'instagram' && 'Instagram Handle *'}
+                      {formData.preferredContactMethod === 'whatsapp' && 'WhatsApp Number *'}
                     </Label>
-
                     <Input
                       id="contactDetails"
                       required
                       value={formData.contactDetails}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          contactDetails: e.target.value,
-                        })
-                      }
+                      onChange={(e) => setFormData({ ...formData, contactDetails: e.target.value })}
                       placeholder={
-                        formData.preferredContactMethod ===
-                        'email'
-                          ? 'your@email.com'
-                          : '@yourhandle'
+                        formData.preferredContactMethod === 'email' ? 'your@email.com' :
+                        formData.preferredContactMethod === 'whatsapp' ? '+1 234 567 890' : '@yourhandle'
                       }
-                      className="font-heading text-sm rounded-lg"
+                      className="font-heading text-base sm:text-sm rounded-lg bg-background border-foreground/10"
                     />
-                  </div>
+                  </motion.div>
                 )}
 
-                {/* MESSAGE */}
                 <div>
-                  <Label
-                    htmlFor="message"
-                    className="font-heading text-xs uppercase tracking-wider text-foreground/70 mb-1.5 block"
-                  >
+                  <Label htmlFor="message" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-2 block">
                     Message *
                   </Label>
-
                   <Textarea
                     id="message"
                     required
-                    rows={4}
+                    rows={5}
                     value={formData.message}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        message: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     placeholder="How can we help you?"
-                    className="font-heading text-sm rounded-lg"
+                    className="font-heading text-base sm:text-sm rounded-lg bg-background border-foreground/10 resize-none"
                   />
                 </div>
 
-                {/* SUBMIT */}
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-3 font-heading text-xs uppercase tracking-widest disabled:opacity-50 mt-2"
+                  className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-6 font-heading text-xs uppercase tracking-widest disabled:opacity-50 mt-4 shadow-md"
                 >
                   {isSubmitting ? 'Sending...' : 'Send Message'}
                 </Button>
               </form>
             </motion.div>
 
-            {/* DIRECT CONTACT */}
+            {/* RIGHT: DIRECT CONTACT */}
             <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="w-full text-center"
+              className="flex flex-col justify-center h-full"
             >
-              <div>
-                <h2 className="font-heading text-xl md:text-2xl text-foreground mb-3">
+              <div className="mb-10">
+                <h2 className="font-heading text-xl md:text-3xl text-foreground mb-4">
                   Direct Contact
                 </h2>
-
-                <p className="font-paragraph text-xs md:text-sm text-foreground/80 leading-relaxed max-w-md mx-auto">
-                  Prefer reaching out directly? Email or Instagram are
-                  available for questions, order details, and other inquiries.
+                <p className="font-paragraph text-sm text-foreground/70 leading-relaxed">
+                  Prefer reaching out directly? Feel free to use Email or Instagram for questions regarding order details, custom sizing, or styling advice.
                 </p>
               </div>
 
-              {/* CONTACT CHANNELS */}
-              <div className="mt-6 pt-5 border-t border-foreground/10 space-y-3 text-left">
-
-                {/* EMAIL */}
-                <a
-                  href="mailto:23nk.corset@gmail.com"
-                  className="flex items-center gap-4 group p-2 transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-full bg-ivory border border-foreground/10 flex items-center justify-center shrink-0 group-hover:border-soft-gold transition-colors">
-                    <Mail className="w-4 h-4 text-foreground group-hover:text-soft-gold transition-colors" />
+              <div className="space-y-6">
+                <a href="mailto:23nk.corset@gmail.com" className="flex items-start gap-5 group p-4 rounded-2xl hover:bg-ivory transition-colors border border-transparent hover:border-foreground/5">
+                  <div className="w-12 h-12 rounded-full bg-background border border-foreground/10 flex items-center justify-center shrink-0 group-hover:border-soft-gold transition-colors shadow-sm">
+                    <Mail className="w-5 h-5 text-foreground group-hover:text-soft-gold transition-colors" />
                   </div>
-
-                  <div className="min-w-0">
-                    <p className="font-heading text-xs uppercase tracking-wider text-foreground/60">
-                      Email
+                  <div>
+                    <p className="font-heading text-[11px] uppercase tracking-widest text-foreground/50 mb-1">
+                      Email Us
                     </p>
-
-                    <p className="font-heading text-sm text-foreground font-semibold group-hover:text-soft-gold transition-colors truncate">
+                    <p className="font-heading text-base text-foreground font-semibold group-hover:text-soft-gold transition-colors">
                       23nk.corset@gmail.com
                     </p>
                   </div>
                 </a>
 
-                {/* INSTAGRAM */}
-                <a
-                  href="https://www.instagram.com/i23nk/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-4 group p-2 transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-full bg-ivory border border-foreground/10 flex items-center justify-center shrink-0 group-hover:border-soft-gold transition-colors">
-                    <Instagram className="w-4 h-4 text-foreground group-hover:text-soft-gold transition-colors" />
+                <a href="https://www.instagram.com/i23nk/" target="_blank" rel="noopener noreferrer" className="flex items-start gap-5 group p-4 rounded-2xl hover:bg-ivory transition-colors border border-transparent hover:border-foreground/5">
+                  <div className="w-12 h-12 rounded-full bg-background border border-foreground/10 flex items-center justify-center shrink-0 group-hover:border-soft-gold transition-colors shadow-sm">
+                    <Instagram className="w-5 h-5 text-foreground group-hover:text-soft-gold transition-colors" />
                   </div>
-
-                  <div className="min-w-0">
-                    <p className="font-heading text-xs uppercase tracking-wider text-foreground/60">
-                      Instagram
+                  <div>
+                    <p className="font-heading text-[11px] uppercase tracking-widest text-foreground/50 mb-1">
+                      DM on Instagram
                     </p>
-
-                    <p className="font-heading text-sm text-foreground font-semibold group-hover:text-soft-gold transition-colors">
+                    <p className="font-heading text-base text-foreground font-semibold group-hover:text-soft-gold transition-colors">
                       @i23nk
                     </p>
                   </div>
                 </a>
-
               </div>
             </motion.div>
           </div>

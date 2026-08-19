@@ -3,3 +3,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Запрещаем странице дергаться при исчезновении скроллбара в Select/Modal */
+html {
+  scrollbar-gutter: stable;
+}
+
+body[data-scroll-locked] {
+  margin-right: 0px !important;
+  padding-right: 0px !important;
+}
