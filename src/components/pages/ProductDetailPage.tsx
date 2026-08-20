@@ -7,7 +7,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Products } from '@/entities';
 import { BaseCrudService } from '@/integrations';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronDown, ChevronRight, Sparkles, X, ZoomIn } from 'lucide-react';
+import { ChevronDown, ChevronRight, X, ZoomIn } from 'lucide-react';
 import React, { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -28,7 +28,6 @@ export default function ProductDetailPage() {
 
   // Состояния загрузки
   const [isMainImageLoading, setIsMainImageLoading] = useState(true);
-  const [isZoomPreparing, setIsZoomPreparing] = useState(false);
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'claim' | 'custom'>('claim');
@@ -96,51 +95,30 @@ export default function ProductDetailPage() {
     product?.additionalImage2,
   ].filter(Boolean) as string[];
 
-  // ПРЕДЗАГРУЗКА ВСЕХ ФОТО В КЭШ ДЛЯ МГНОВЕННОГО СВАЙПА
+  // Фоновая предзагрузка всех фото в кэш браузера
   useEffect(() => {
     if (!images.length) return;
 
-    let isCancelled = false;
-    setIsMainImageLoading(true);
-
-    let loadedCount = 0;
     images.forEach((src) => {
       const validSrc = getValidImageUrl(src);
       if (!validSrc) return;
-
       const img = new window.Image();
       img.src = validSrc;
-
-      const onDone = () => {
-        if (isCancelled) return;
-        loadedCount++;
-        if (loadedCount >= 1) {
-          setIsMainImageLoading(false);
-        }
-      };
-
-      if (img.complete) {
-        onDone();
-      } else {
-        img.onload = onDone;
-        img.onerror = onDone;
-      }
     });
 
-    return () => {
-      isCancelled = true;
-    };
+    setIsMainImageLoading(false);
   }, [product?._id]);
 
-  // Закрытие модалки на Esc
+  // Закрытие модалок на Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleCloseZoom();
+        if (isFullscreenZoom) handleCloseZoom();
+        else if (isDialogOpen) setIsDialogOpen(false);
       }
     };
 
-    if (isFullscreenZoom) {
+    if (isFullscreenZoom || isDialogOpen) {
       document.body.style.overflow = 'hidden';
       window.addEventListener('keydown', handleKeyDown);
     } else {
@@ -152,40 +130,25 @@ export default function ProductDetailPage() {
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isFullscreenZoom]);
+  }, [isFullscreenZoom, isDialogOpen]);
 
+  // Зум на весь экран
   const handleOpenZoom = (index?: number) => {
-    const targetIndex = index !== undefined ? index : currentImage;
     if (index !== undefined) {
       setCurrentImage(index);
     }
-
-    const currentSrc = images[targetIndex];
-    if (!currentSrc) return;
-
-    setIsZoomPreparing(true);
-    const img = new window.Image();
-    img.src = getValidImageUrl(currentSrc);
-
-    const onReady = () => {
-      setIsZoomPreparing(false);
-      setIsFullscreenZoom(true);
-    };
-
-    if (img.complete) {
-      onReady();
-    } else {
-      img.onload = onReady;
-      img.onerror = onReady;
-    }
+    setIsFullscreenZoom(true);
   };
 
   const handleCloseZoom = () => {
     setIsFullscreenZoom(false);
+    setShowModalZoom(false);
     setTimeout(() => {
       setTouchScale(1);
       setTouchPos({ x: 0, y: 0 });
-    }, 200);
+      touchState.current.isPinching = false;
+      touchState.current.isPanning = false;
+    }, 150);
   };
 
   // Десктопный зум внутри модалки
@@ -241,6 +204,7 @@ export default function ProductDetailPage() {
   const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const scrollLeft = e.currentTarget.scrollLeft;
     const itemWidth = e.currentTarget.clientWidth;
+    if (!itemWidth) return;
     const newIndex = Math.round(scrollLeft / itemWidth);
     if (newIndex !== currentImage && newIndex >= 0 && newIndex < images.length) {
       setCurrentImage(newIndex);
@@ -268,6 +232,13 @@ export default function ProductDetailPage() {
     );
   }
 
+  // Универсальная проверка наличия (покрывает inStock, instock, in_stock)
+  const isInStock = Boolean(
+    product.inStock ?? 
+    (product as any).instock ?? 
+    (product as any).in_stock
+  );
+
   const jsonLd = {
     '@context': 'https://schema.org/',
     '@type': 'Product',
@@ -278,7 +249,7 @@ export default function ProductDetailPage() {
       '@type': 'Offer',
       priceCurrency: 'USD',
       price: product.price,
-      availability: product.inStock
+      availability: isInStock
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
     },
@@ -317,7 +288,7 @@ export default function ProductDetailPage() {
               transition={{ duration: 0.5 }}
               className="relative w-full min-w-0"
             >
-              {/* МОБИЛЬНАЯ КАРУСЕЛЬ (Плавная, без мерцаний) */}
+              {/* МОБИЛЬНАЯ КАРУСЕЛЬ */}
               <div
                 className="md:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 pb-2 w-full"
                 onScroll={handleMobileScroll}
@@ -355,10 +326,10 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* ДЕСКТОПНОЕ ФОТО С ЗУМОМ */}
+              {/* ДЕСКТОПНОЕ ФОТО */}
               <div
                 className="hidden md:flex bg-ivory rounded-2xl overflow-hidden mb-4 aspect-square relative shadow-sm group cursor-pointer items-center justify-center"
-                onClick={() => handleOpenZoom()}
+                onClick={() => handleOpenZoom(currentImage)}
               >
                 {isMainImageLoading && (
                   <div className="absolute inset-0 z-10 bg-ivory flex items-center justify-center">
@@ -415,7 +386,8 @@ export default function ProductDetailPage() {
               transition={{ duration: 0.5, delay: 0.1 }}
               className="flex flex-col"
             >
-              {product.inStock && (
+              {/* Плашка Ready to Ship */}
+              {isInStock && (
                 <div className="mb-3">
                   <span className="inline-block bg-soft-gold text-ivory px-3.5 py-1 rounded-full text-xs font-heading font-semibold shadow-sm">
                     Ready to Ship
@@ -432,11 +404,12 @@ export default function ProductDetailPage() {
               </p>
 
               <div>
+                {/* Кнопка: при наличии открывает Claim, иначе Custom */}
                 <Button
-                  onClick={() => handleOpenModal(product.inStock ? 'claim' : 'custom')}
+                  onClick={() => handleOpenModal(isInStock ? 'claim' : 'custom')}
                   className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white active:scale-[0.98] transition-all rounded-full py-4 text-xs font-heading tracking-widest uppercase shadow-md"
                 >
-                  {product.inStock ? 'Order Now' : 'Custom Order'}
+                  {isInStock ? 'Order Now' : 'Custom Order'}
                 </Button>
               </div>
 
@@ -570,9 +543,9 @@ export default function ProductDetailPage() {
         </div>
       </main>
 
-      {/* FULLSCREEN LIGHTBOX С PINCH-TO-ZOOM */}
+      {/* FULLSCREEN LIGHTBOX */}
       <AnimatePresence>
-        {isFullscreenZoom && (
+        {isFullscreenZoom && images[currentImage] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -582,6 +555,7 @@ export default function ProductDetailPage() {
             onClick={handleCloseZoom}
           >
             <button
+              type="button"
               className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 bg-white/10 hover:bg-white/20 p-2 sm:p-3 rounded-full text-white transition-colors"
               onClick={(e) => {
                 e.stopPropagation();
@@ -594,14 +568,16 @@ export default function ProductDetailPage() {
             <div className="relative flex items-center justify-center w-full h-full max-w-7xl overflow-hidden sm:overflow-visible">
               <div
                 ref={modalImgRef}
-                className="relative inline-flex items-center justify-center cursor-crosshair max-w-full max-h-full touch-none"
+                className="relative inline-flex items-center justify-center cursor-crosshair max-w-full max-h-full"
                 onMouseEnter={() => setShowModalZoom(true)}
                 onMouseLeave={() => setShowModalZoom(false)}
                 onMouseMove={handleModalMouseMove}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onContextMenu={(e) => e.preventDefault()}
                 onClick={(e) => e.stopPropagation()}
+                style={{ touchAction: 'none' }}
               >
                 <div
                   className={`transition-opacity duration-300 ${
@@ -625,19 +601,17 @@ export default function ProductDetailPage() {
                   />
                 </div>
 
-                {images[currentImage] && (
-                  <div
-                    className={`absolute inset-0 z-20 pointer-events-none hidden md:block transition-opacity duration-150 ${
-                      showModalZoom ? 'opacity-100' : 'opacity-0'
-                    }`}
-                    style={{
-                      backgroundImage: `url(${getValidImageUrl(images[currentImage])})`,
-                      backgroundPosition: `${modalZoomPos.x}% ${modalZoomPos.y}%`,
-                      backgroundSize: '250%',
-                      backgroundRepeat: 'no-repeat',
-                    }}
-                  />
-                )}
+                <div
+                  className={`absolute inset-0 z-20 pointer-events-none hidden md:block transition-opacity duration-150 ${
+                    showModalZoom ? 'opacity-100' : 'opacity-0'
+                  }`}
+                  style={{
+                    backgroundImage: `url(${getValidImageUrl(images[currentImage])})`,
+                    backgroundPosition: `${modalZoomPos.x}% ${modalZoomPos.y}%`,
+                    backgroundSize: '250%',
+                    backgroundRepeat: 'no-repeat',
+                  }}
+                />
               </div>
             </div>
           </motion.div>
