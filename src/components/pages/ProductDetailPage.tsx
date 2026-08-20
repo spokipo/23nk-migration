@@ -8,7 +8,7 @@ import { Products } from '@/entities';
 import { BaseCrudService } from '@/integrations';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ChevronRight, X, ZoomIn } from 'lucide-react';
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 const getValidImageUrl = (url?: string | null) => {
@@ -109,6 +109,20 @@ export default function ProductDetailPage() {
     setIsMainImageLoading(false);
   }, [product?._id]);
 
+// Динамический SEO title страницы товара
+  useEffect(() => {
+    if (product?.name) {
+      document.title = `I23NK | ${product.name}`;
+    } else {
+      document.title = 'I23NK | Custom Upcycled Corsets';
+    }
+    
+    // Возвращаем дефолтный тайтл при уходе со страницы товара
+    return () => {
+      document.title = 'I23NK | Pieces with a history, tailored for the future';
+    };
+  }, [product?.name]);
+
   // Закрытие модалок на Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,6 +145,8 @@ export default function ProductDetailPage() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isFullscreenZoom, isDialogOpen]);
+
+
 
   // Зум на весь экран
   const handleOpenZoom = (index?: number) => {
@@ -384,7 +400,7 @@ export default function ProductDetailPage() {
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="flex flex-col"
+              className="flex flex-col md:sticky md:top-24"
             >
               {/* Плашка Ready to Ship */}
               {isInStock && (
@@ -407,7 +423,7 @@ export default function ProductDetailPage() {
                 {/* Кнопка: при наличии открывает Claim, иначе Custom */}
                 <Button
                   onClick={() => handleOpenModal(isInStock ? 'claim' : 'custom')}
-                  className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white active:scale-[0.98] transition-all rounded-full py-4 text-xs font-heading tracking-widest uppercase shadow-md"
+                  className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-6 text-xs sm:text-sm font-heading tracking-widest uppercase shadow-md"
                 >
                   {isInStock ? 'Order Now' : 'Custom Order'}
                 </Button>
