@@ -52,8 +52,8 @@ export default function DeliveryPage() {
           </p>
           <p>
             For delivery questions: <br/>
-            <a href="mailto:23nk.corset@gmail.com" className="text-soft-gold hover:underline font-semibold mt-1 inline-block">
-              23nk.corset@gmail.com
+            <a href="mailto:corset@i23nk.com" className="text-soft-gold hover:underline font-semibold mt-1 inline-block">
+              corset@i23nk.com
             </a>
           </p>
         </div>

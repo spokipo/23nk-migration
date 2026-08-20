@@ -20,7 +20,7 @@ export default function TermsConditionsPage() {
             </h1>
 
             <p className="font-heading text-xs md:text-sm text-soft-gold tracking-widest uppercase">
-              Effective Date: August 15, 2026
+              Effective Date: August 20, 2026
             </p>
           </motion.div>
 
@@ -38,17 +38,17 @@ export default function TermsConditionsPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                I23NK is an independent, artisanal upcycling brand. All garments created and displayed on the website are individually handcrafted using authentic pre-owned (second-hand) vintage clothing, textiles, and materials acquired through legitimate resale and second-hand channels.
+                I23NK is an independent, artisanal upcycling studio. All garments displayed and sold are individually handcrafted using authentic, pre-owned vintage textiles and materials acquired through legitimate secondary and resale channels.
               </p>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                I23NK is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any of the original brand owners, fashion houses, or trademark holders whose logos, patterns, or other brand elements may be visible on upcycled pieces. Any visible logos or brand elements are part of the original repurposed material and do not indicate any affiliation, authorization, endorsement, or collaboration with the respective trademark owners. All brand names and trademarks remain the sole property of their respective owners.
+                I23NK is not affiliated, associated, authorized, endorsed by, or in any way officially connected with any original trademark holders, fashion houses, or brands whose historical insignias or textile patterns may appear on repurposed fabrics. All brand names, trademarks, and logos remain the sole intellectual property of their respective owners.
               </p>
             </motion.section>
 
             <div className="border-t border-foreground/10" />
 
-            {/* 2. CUSTOM TAILORING & ITEM CONDITION */}
+            {/* 2. ITEM CONDITION & NATURE OF UPCYCLING */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -56,73 +56,21 @@ export default function TermsConditionsPage() {
               transition={{ duration: 0.6 }}
             >
               <h2 className="font-heading text-2xl md:text-3xl text-foreground mb-4 md:mb-6">
-                Custom Tailoring & Item Condition
+                Item Condition & Upcycled Materials
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                All garments in the collection, including in-stock and custom-made pieces, are individually handcrafted from pre-owned and repurposed textiles. Each piece is unique and may feature minor variations, signs of previous use, natural wear, fabric irregularities, or other vintage characteristics inherent to pre-owned materials. Such characteristics are an integral part of upcycled fashion and are not considered defects.
-              </p>
-
-              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                Product descriptions, photographs, measurements, and other information provided for each item form part of the item's presentation and should be reviewed carefully before placing an order.
+                Due to the nature of reworked vintage materials, every piece is unique. Garments may showcase subtle vintage characteristics, gentle fabric fading, patina, or historical stitch marks inherent to rescued textiles. These distinct attributes reflect the authenticity of upcycling and are not considered manufacturing defects.
               </p>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                For custom-tailored orders, measurements must be provided accurately by the customer. I23NK is not responsible for improper fit resulting from inaccurate or incorrectly submitted measurements.
+                Accurate sizing details and high-resolution photographs are provided for each listing. For custom orders, garments are crafted strictly in accordance with measurements provided by the client. I23NK cannot be held responsible for fit discrepancies resulting from inaccurate measurements supplied by the customer.
               </p>
             </motion.section>
 
             <div className="border-t border-foreground/10" />
 
-            {/* 3. CUSTOM ORDERS */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="font-heading text-2xl md:text-3xl text-foreground mb-4 md:mb-6">
-                Custom Orders
-              </h2>
-
-              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                Custom-made garments are produced specifically according to the customer's measurements, specifications, and approved design details. Once a custom order has been confirmed and production has begun, the order cannot be cancelled due to a change of mind or personal preference.
-              </p>
-
-              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                The customer is responsible for providing accurate measurements and all relevant information required for production. Any additional alterations requested after production has begun may be subject to additional charges and availability.
-              </p>
-            </motion.section>
-
-            <div className="border-t border-foreground/10" />
-
-            {/* 4. RETURNS & CANCELLATIONS */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="font-heading text-2xl md:text-3xl text-foreground mb-4 md:mb-6">
-                Returns & Cancellations Policy
-              </h2>
-
-              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                All sales are final. Returns, exchanges, and refunds are not accepted for change of mind, personal preference, sizing preference, or characteristics inherent to pre-owned and upcycled materials.
-              </p>
-
-              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
-                Custom-made garments are not eligible for return or exchange due to incorrect measurements supplied by the customer, changes in personal preference, or dissatisfaction with the fit resulting from inaccurate measurement information.
-              </p>
-
-              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                By placing an order through direct consultation, direct messaging, email, or the website, the customer confirms acceptance of these Final Sale conditions.
-              </p>
-            </motion.section>
-
-            <div className="border-t border-foreground/10" />
-
-            {/* 5. ORDERING & PAYMENT */}
+            {/* 3. ORDERING & PAYMENT */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -133,14 +81,18 @@ export default function TermsConditionsPage() {
                 Ordering & Payment Terms
               </h2>
 
+              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
+                Orders are processed upon submission via website forms, electronic invoices, or confirmed direct consultation. 
+              </p>
+
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                Orders may be arranged through direct consultation, email, direct messaging, or other communication channels designated by I23NK. Order details, including measurements, specifications, pricing, and other relevant information, should be confirmed by the customer before payment. Production of custom-tailored garments begins only after payment has been confirmed.
+                Payments are securely settled via official payment providers (including Payoneer invoices and checkout links). Production of custom bespoke pieces and dispatch of ready-to-ship inventory begins only after full payment confirmation.
               </p>
             </motion.section>
 
             <div className="border-t border-foreground/10" />
 
-            {/* 6. SHIPPING & CUSTOMS */}
+            {/* 4. RETURNS, DEFECTS & FINAL SALE */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -148,17 +100,47 @@ export default function TermsConditionsPage() {
               transition={{ duration: 0.6 }}
             >
               <h2 className="font-heading text-2xl md:text-3xl text-foreground mb-4 md:mb-6">
-                International Shipping & Customs
+                Returns, Exchanges & Damaged Items
               </h2>
 
+              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
+                <strong>Final Sale Policy:</strong> Due to the exclusive one-of-a-kind and bespoke nature of handcrafted upcycled pieces, all sales are final. We do not accept returns, exchanges, or order cancellations for change of mind, personal style preference, or incorrect customer-provided measurements.
+              </p>
+
+              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed mb-4">
+                <strong>Manufacturing Defects & Transit Damage:</strong> In the rare event that an item arrives damaged during transit or possesses an unintended construction defect (excluding normal vintage patina), the client must contact us at{' '}
+                <a href="mailto:corset@i23nk.com" className="text-soft-gold underline">
+                  corset@i23nk.com
+                </a>{' '}
+                within <strong>48 hours of delivery</strong>. Inquiries must include order details along with clear unboxing photos and videos demonstrating the issue.
+              </p>
+
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                International shipping is available. International orders may be subject to import duties, taxes, customs fees, or other charges imposed by the destination country. Unless otherwise agreed in writing, the recipient is solely responsible for all applicable local duties, taxes, and customs charges.
+                Upon verification, I23NK will offer an appropriate remedy, which may include complimentary repair, store credit, or replacement.
               </p>
             </motion.section>
 
             <div className="border-t border-foreground/10" />
 
-            {/* 7. GOVERNING LAW */}
+            {/* 5. SHIPPING & CUSTOMS */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="font-heading text-2xl md:text-3xl text-foreground mb-4 md:mb-6">
+                International Shipping & Customs Duties
+              </h2>
+
+              <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
+                International shipping is fulfilled via reputable carrier services with tracking provided. International shipments may be subject to customs inspections, import duties, value-added taxes (VAT), or clearance fees imposed by the destination country. The recipient is solely responsible for all applicable local customs charges and import duties.
+              </p>
+            </motion.section>
+
+            <div className="border-t border-foreground/10" />
+
+            {/* 6. GOVERNING LAW */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -170,13 +152,13 @@ export default function TermsConditionsPage() {
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                These Terms and Conditions shall be governed by and construed in accordance with the applicable laws governing I23NK and its commercial activities.
+                These Terms and Conditions shall be governed by and interpreted in accordance with the applicable commercial laws governing I23NK.
               </p>
             </motion.section>
 
             <div className="border-t border-foreground/10" />
 
-            {/* 8. CONTACT */}
+            {/* 7. CONTACT */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -184,16 +166,16 @@ export default function TermsConditionsPage() {
               transition={{ duration: 0.6 }}
             >
               <h2 className="font-heading text-2xl md:text-3xl text-foreground mb-4 md:mb-6">
-                Contact
+                Contact Information
               </h2>
 
               <p className="font-heading text-sm md:text-base text-foreground/80 leading-relaxed">
-                Questions regarding these Terms & Conditions may be directed to{' '}
+                For questions regarding these Terms & Conditions, please contact us at{' '}
                 <a
-                  href="mailto:23nk.corset@gmail.com"
-                  className="text-soft-gold hover:text-soft-gold/80 transition-colors"
+                  href="mailto:corset@i23nk.com"
+                  className="text-soft-gold hover:text-soft-gold/80 transition-colors underline"
                 >
-                  23nk.corset@gmail.com
+                  corset@i23nk.com
                 </a>.
               </p>
             </motion.section>

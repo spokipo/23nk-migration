@@ -280,7 +280,7 @@ export default function ContactPage() {
               </div>
 
               <div className="space-y-6">
-                <a href="mailto:23nk.corset@gmail.com" className="flex items-start gap-5 group p-4 rounded-2xl hover:bg-ivory transition-colors border border-transparent hover:border-foreground/5">
+                <a href="mailto:corset@i23nk.com" className="flex items-start gap-5 group p-4 rounded-2xl hover:bg-ivory transition-colors border border-transparent hover:border-foreground/5">
                   <div className="w-12 h-12 rounded-full bg-background border border-foreground/10 flex items-center justify-center shrink-0 group-hover:border-soft-gold transition-colors shadow-sm">
                     <Mail className="w-5 h-5 text-foreground group-hover:text-soft-gold transition-colors" />
                   </div>
@@ -289,7 +289,7 @@ export default function ContactPage() {
                       Email Us
                     </p>
                     <p className="font-heading text-base text-foreground font-semibold group-hover:text-soft-gold transition-colors">
-                      23nk.corset@gmail.com
+                      corset@i23nk.com
                     </p>
                   </div>
                 </a>

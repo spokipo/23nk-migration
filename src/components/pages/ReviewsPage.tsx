@@ -346,12 +346,12 @@ export default function ReviewsPage() {
         animate: { 
           y: 0, 
           opacity: 1,
-          transition: { type: 'tween', duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+          transition: { type: 'tween', duration: 0.35, ease: [0.16, 1, 0.3, 1] }
         },
         exit: { 
           y: '100%', 
           opacity: 1,
-          transition: { type: 'tween', duration: 0.4, ease: [0.16, 1, 0.3, 1] }
+          transition: { type: 'tween', duration: 0.3, ease: [0.16, 1, 0.3, 1] }
         },
       }
     : {
@@ -470,7 +470,7 @@ export default function ReviewsPage() {
       {/* --- PREVIEW MODAL --- */}
       <AnimatePresence>
         {selectedReview && !isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-none">
+          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-contain">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -485,7 +485,7 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-2xl sm:rounded-2xl"
+              className="relative z-10 flex max-h-[85dvh] sm:max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-2xl sm:rounded-2xl"
             >
               <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
                 <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
@@ -558,7 +558,7 @@ export default function ReviewsPage() {
       {/* --- FORM MODAL --- */}
       <AnimatePresence>
         {isFormOpen && selectedReview && (
-          <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-none">
+          <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-contain">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -573,7 +573,7 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-md sm:rounded-2xl"
+              className="relative z-10 flex max-h-[85dvh] sm:max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-md sm:rounded-2xl"
             >
               <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
                 <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
@@ -587,7 +587,7 @@ export default function ReviewsPage() {
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="modal-scrollbar flex-1 overflow-y-auto p-5 sm:p-7">
+              <div className="modal-scrollbar flex-1 overflow-y-auto p-5 sm:p-7 overscroll-contain">
                 {isSubmittedSuccess ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -681,15 +681,15 @@ export default function ReviewsPage() {
                           <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg">
                             <SelectValue placeholder="Select Country..." />
                           </SelectTrigger>
-                          <SelectContent className="z-[110] max-h-60">
-  {Country.getAllCountries()
-    .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
-    .map((c) => (
-      <SelectItem key={c.isoCode} value={c.isoCode}>
-        {c.name}
-      </SelectItem>
-    ))}
-</SelectContent>
+                          <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
+                            {Country.getAllCountries()
+                              .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
+                              .map((c) => (
+                                <SelectItem key={c.isoCode} value={c.isoCode}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
                         </Select>
                       </div>
 

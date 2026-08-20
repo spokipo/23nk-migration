@@ -145,8 +145,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
       <Header />
 
-      {/* HERO */}
-      <section className="relative w-full h-[65vh] sm:h-[75vh] min-h-[480px] max-h-[850px] overflow-hidden flex items-center justify-center">
+      {/* HERO (Оптимизированная высота для мобильных) */}
+      <section className="relative w-full h-[50dvh] sm:h-[70vh] min-h-[360px] sm:min-h-[500px] max-h-[750px] overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <Image
             src="/hero.webp#originWidth=1170&originHeight=1337"
@@ -210,56 +210,8 @@ export default function HomePage() {
       </section>
 
       <div className="bg-background">
-        {/* COLLECTIONS (Возвращен журнальный вид в 1 колонку на мобильных) */}
+        {/* 1. READY TO SHIP (Поднят выше для быстрых покупок) */}
         <section className="py-12 md:py-20">
-          <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
-            <div className="text-center mb-8 md:mb-14">
-              <h2 className="font-heading text-3xl md:text-5xl text-foreground">
-                Collections
-              </h2>
-            </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-10 max-w-6xl mx-auto">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="animate-pulse flex flex-col items-center">
-                    <div className="bg-foreground/5 rounded-2xl w-full aspect-square mb-3 shadow-sm"></div>
-                    <div className="h-5 bg-foreground/5 rounded w-1/3 mt-1"></div>
-                  </div>
-                ))}
-              </div>
-            ) : collections.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-10 max-w-6xl mx-auto">
-                {collections.map((collection, index) => (
-                  <motion.div
-                    key={collection._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                  >
-                    <Link to={`/catalog?collection=${collection._id}`} className="group block">
-                      <div className="bg-ivory rounded-2xl overflow-hidden mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md">
-                        <Image
-                          src={collection.image || ''}
-                          alt={collection.name || 'Collection'}
-                          width={800}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                        />
-                      </div>
-                      <h3 className="font-heading text-base md:text-xl text-foreground text-center group-hover:text-soft-gold transition-colors">
-                        {collection.name}
-                      </h3>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* READY TO SHIP */}
-        <section className="py-12 md:py-20 border-t border-foreground/5">
           <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
             <div className="text-center mb-8 md:mb-14">
               <h2 className="font-heading text-3xl md:text-5xl text-foreground">
@@ -329,7 +281,55 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* REVIEWS */}
+        {/* 2. COLLECTIONS (С акцентным разделителем) */}
+        <section className="py-12 md:py-20 border-t border-foreground/5">
+          <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
+            <div className="text-center mb-8 md:mb-14">
+              <h2 className="font-heading text-3xl md:text-5xl text-foreground">
+                Collections
+              </h2>
+            </div>
+
+            {isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-10 max-w-6xl mx-auto">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="animate-pulse flex flex-col items-center">
+                    <div className="bg-foreground/5 rounded-2xl w-full aspect-square mb-3 shadow-sm"></div>
+                    <div className="h-5 bg-foreground/5 rounded w-1/3 mt-1"></div>
+                  </div>
+                ))}
+              </div>
+            ) : collections.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 md:gap-10 max-w-6xl mx-auto">
+                {collections.map((collection, index) => (
+                  <motion.div
+                    key={collection._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                  >
+                    <Link to={`/catalog?collection=${collection._id}`} className="group block">
+                      <div className="bg-ivory rounded-2xl overflow-hidden mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md">
+                        <Image
+                          src={collection.image || ''}
+                          alt={collection.name || 'Collection'}
+                          width={800}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
+                      </div>
+                      <h3 className="font-heading text-base md:text-xl text-foreground text-center group-hover:text-soft-gold transition-colors">
+                        {collection.name}
+                      </h3>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* 3. REVIEWS */}
         <section className="py-12 md:py-20 border-t border-foreground/5 overflow-hidden w-full relative">
           <div className="max-w-[120rem] mx-auto w-full min-w-0">
             <div className="text-center mb-8 md:mb-12 px-6 md:px-12">
@@ -416,7 +416,7 @@ export default function HomePage() {
         </section>
       </div>
 
-      {/* CUSTOM ORDER CTA */}
+      {/* 4. CUSTOM ORDER CTA */}
       <section className="py-16 md:py-24 bg-ivory">
         <div className="max-w-[120rem] mx-auto px-6 md:px-12 text-center">
           <motion.div
