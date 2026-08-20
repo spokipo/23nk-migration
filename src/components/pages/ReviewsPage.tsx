@@ -42,6 +42,88 @@ const getValidImageUrl = (url: string) => {
   return url;
 };
 
+const getImageUrl = (review: any) => {
+  const rawImage =
+    review?.reviewImage ||
+    review?.ReviewImage ||
+    review?.image ||
+    review?.photo ||
+    review?.src ||
+    '';
+
+  let extractedUrl = '';
+  if (typeof rawImage === 'object' && rawImage !== null) {
+    extractedUrl = rawImage.url || rawImage.src || '';
+  } else {
+    extractedUrl = rawImage;
+  }
+
+  return getValidImageUrl(extractedUrl);
+};
+
+// Отдельный компонент карточки с контролем загрузки изображения
+interface GalleryCardProps {
+  review: Reviews;
+  index: number;
+  loadingReviewId: string | null;
+  onOpenReview: (review: Reviews) => void;
+}
+
+function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCardProps) {
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const imageUrl = getImageUrl(review);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        duration: 0.4,
+        delay: index * 0.04,
+      }}
+      onClick={() => onOpenReview(review)}
+      className="group relative flex cursor-pointer flex-col"
+    >
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md mb-2.5 sm:mb-3">
+        
+        {/* Индивидуальный скелетон карточки до завершения декодирования */}
+        {!isImageLoaded && (
+          <div className="absolute inset-0 bg-foreground/5 animate-pulse z-0" />
+        )}
+
+        {loadingReviewId === review._id && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-ivory/80 backdrop-blur-sm transition-opacity">
+            <LoadingSpinner />
+          </div>
+        )}
+
+        <img
+          src={imageUrl}
+          alt={review.reviewTitle || 'Customer Review'}
+          loading={index < 4 ? 'eager' : 'lazy'}
+          decoding="async"
+          onLoad={() => setIsImageLoaded(true)}
+          className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${
+            isImageLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+
+        <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100 z-10">
+          <span className="translate-y-2 transform rounded-full bg-ivory px-4 py-2 font-heading text-[10px] uppercase tracking-wider text-foreground shadow-lg transition-transform duration-300 group-hover:translate-y-0 sm:text-xs">
+            Quick View
+          </span>
+        </div>
+      </div>
+
+      <div className="mt-1 flex flex-col px-0.5">
+        <h3 className="line-clamp-2 font-heading text-xs text-foreground transition-colors group-hover:text-soft-gold sm:text-sm leading-snug">
+          {review.reviewTitle || 'Custom Handcrafted Outfit'}
+        </h3>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -100,19 +182,51 @@ export default function ReviewsPage() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchReviews = async () => {
       setIsLoading(true);
       try {
         const result = await BaseCrudService.getAll<Reviews>('reviews');
-        setReviews(result.items || []);
+        const items = result.items || [];
+        
+        if (!isMounted) return;
+        setReviews(items);
+
+        // Предзагружаем верхние 6 фото перед отключением скелетона
+        if (items.length > 0) {
+          const topImages = items.slice(0, 6).map(getImageUrl).filter(Boolean);
+          
+          await Promise.race([
+            Promise.allSettled(
+              topImages.map((src) => {
+                return new Promise((resolve) => {
+                  const img = new window.Image();
+                  img.src = src;
+                  if (img.complete) {
+                    resolve(true);
+                  } else {
+                    img.onload = () => resolve(true);
+                    img.onerror = () => resolve(false);
+                  }
+                });
+              })
+            ),
+            new Promise((resolve) => setTimeout(resolve, 800)) // Тайм-аут, чтобы не задерживать UI на медленном интернете
+          ]);
+        }
       } catch (error) {
         console.error('Error fetching reviews:', error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
 
     fetchReviews();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -139,25 +253,6 @@ export default function ReviewsPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreenZoom, isFormOpen, selectedReview]);
 
-  const getImageUrl = (review: any) => {
-    const rawImage =
-      review?.reviewImage ||
-      review?.ReviewImage ||
-      review?.image ||
-      review?.photo ||
-      review?.src ||
-      '';
-
-    let extractedUrl = '';
-    if (typeof rawImage === 'object' && rawImage !== null) {
-      extractedUrl = rawImage.url || rawImage.src || '';
-    } else {
-      extractedUrl = rawImage;
-    }
-
-    return getValidImageUrl(extractedUrl);
-  };
-
   const getProductName = (review: any) => {
     return (
       review?.productName ||
@@ -179,7 +274,7 @@ export default function ReviewsPage() {
     setIsSubmittedSuccess(false);
   };
 
-  // ИДЕАЛЬНАЯ ЗАГРУЗКА ПРЕВЬЮ
+  // Загрузка превью модалки
   const handleOpenReview = (review: Reviews) => {
     const currentSrc = getImageUrl(review);
     if (!currentSrc) return;
@@ -219,7 +314,7 @@ export default function ReviewsPage() {
     setIsSubmittedSuccess(false);
   };
 
-  // ИДЕАЛЬНАЯ ЗАГРУЗКА FULLSCREEN ЗУМА
+  // Загрузка Fullscreen зума
   const handleOpenZoom = () => {
     const currentSrc = selectedReview ? getImageUrl(selectedReview) : '';
     if (!currentSrc) return;
@@ -411,51 +506,15 @@ export default function ReviewsPage() {
             </div>
           ) : reviews.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-14">
-              {reviews.map((review, index) => {
-                const imageUrl = getImageUrl(review);
-
-                return (
-                  <motion.div
-                    key={review._id || index}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{
-                      duration: 0.4,
-                      delay: index * 0.04,
-                    }}
-                    onClick={() => handleOpenReview(review)}
-                    className="group relative flex cursor-pointer flex-col"
-                  >
-                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md mb-2.5 sm:mb-3">
-                      
-                      {loadingReviewId === review._id && (
-                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-ivory/80 backdrop-blur-sm transition-opacity">
-                          <LoadingSpinner />
-                        </div>
-                      )}
-
-                      <Image
-                        src={imageUrl}
-                        alt={review.reviewTitle || 'Customer Review'}
-                        fill
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30 p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                        <span className="translate-y-2 transform rounded-full bg-ivory px-4 py-2 font-heading text-[10px] uppercase tracking-wider text-foreground shadow-lg transition-transform duration-300 group-hover:translate-y-0 sm:text-xs">
-                          Quick View
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="mt-1 flex flex-col px-0.5">
-                      <h3 className="line-clamp-2 font-heading text-xs text-foreground transition-colors group-hover:text-soft-gold sm:text-sm leading-snug">
-                        {review.reviewTitle || 'Custom Handcrafted Outfit'}
-                      </h3>
-                    </div>
-                  </motion.div>
-                );
-              })}
+              {reviews.map((review, index) => (
+                <GalleryCard
+                  key={review._id || index}
+                  review={review}
+                  index={index}
+                  loadingReviewId={loadingReviewId}
+                  onOpenReview={handleOpenReview}
+                />
+              ))}
             </div>
           ) : (
             <div className="py-20 text-center">
@@ -808,7 +867,7 @@ export default function ReviewsPage() {
         )}
       </AnimatePresence>
 
-      {/* --- ИДЕАЛЬНАЯ FULLSCREEN МОДАЛКА ЗУМА С ЖЕЛЕЗОБЕТОННЫМ PINCH-TO-ZOOM --- */}
+      {/* --- FULLSCREEN МОДАЛКА ЗУМА С PINCH-TO-ZOOM --- */}
       <AnimatePresence>
         {isFullscreenZoom && selectedReview && (
           <motion.div
