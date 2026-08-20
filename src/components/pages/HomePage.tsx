@@ -146,7 +146,7 @@ export default function HomePage() {
       <Header />
 
       {/* HERO (Оптимизированная высота для мобильных) */}
-      <section className="relative w-full h-[50dvh] sm:h-[70vh] min-h-[360px] sm:min-h-[500px] max-h-[750px] overflow-hidden flex items-center justify-center">
+      <section className="relative w-full h-[60dvh] sm:h-[72vh] min-h-[430px] sm:min-h-[520px] max-h-[800px] overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <Image
             src="/hero.webp#originWidth=1170&originHeight=1337"
