@@ -95,18 +95,27 @@ export default function ProductDetailPage() {
     product?.additionalImage2,
   ].filter(Boolean) as string[];
 
-  // Фоновая предзагрузка всех фото в кэш браузера
+  // Умная фоновая предзагрузка (Без тормозов при старте)
   useEffect(() => {
     if (!images.length) return;
 
-    images.forEach((src) => {
-      const validSrc = getValidImageUrl(src);
-      if (!validSrc) return;
-      const img = new window.Image();
-      img.src = validSrc;
-    });
-
+    // Убираем крутилку спиннера
     setIsMainImageLoading(false);
+
+    // Даем браузеру ровно 1 секунду, чтобы он бросил всю скорость интернета 
+    // на загрузку ПЕРВОЙ главной фотки.
+    const preloadTimer = setTimeout(() => {
+      // Через секунду начинаем тихонько, в фоне, качать остальные фотки (со 2-й и дальше).
+      // К моменту, когда пользователь решит свайпнуть, они уже будут лежать в кэше телефона!
+      images.slice(1).forEach((src) => {
+        const validSrc = getValidImageUrl(src);
+        if (!validSrc) return;
+        const img = new window.Image();
+        img.src = validSrc;
+      });
+    }, 1000); // 1000 миллисекунд = 1 секунда задержки
+
+    return () => clearTimeout(preloadTimer);
   }, [product?._id]);
 
 // Динамический SEO title страницы товара
@@ -319,8 +328,10 @@ export default function ProductDetailPage() {
                       src={getValidImageUrl(img)}
                       alt={product.name || 'Product'}
                       className="w-full h-full object-cover"
-                      loading="eager"
-                      decoding="async"
+                      // Первая грузится агрессивно. Остальные ждут свайпа (но по факту
+                      // подтянутся из кэша благодаря таймеру выше)
+                      loading={idx === 0 ? "eager" : "lazy"} 
+                      decoding={idx === 0 ? "sync" : "async"} 
                     />
                   </div>
                 ))}
