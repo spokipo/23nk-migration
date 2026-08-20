@@ -10,5 +10,6 @@
   "vars": {
     "PAYPAL_CLIENT_ID": "",
     "PAYPAL_ENV": "live"
-  }
+  },
+  "preview_urls": false
 }

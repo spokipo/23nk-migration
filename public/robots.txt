@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://i23nk.com/sitemap.xml

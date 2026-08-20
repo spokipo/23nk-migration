@@ -627,7 +627,7 @@ export default function ProductDetailPage() {
           price: product.price,
           mainImage: product.mainImage,
         }}
-        mode={modalMode}
+        modalMode={modalMode}
       />
 
       <Footer />
