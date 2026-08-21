@@ -66,9 +66,9 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
         delay: (index % 12) * 0.04,
       }}
       onClick={() => onOpenReview(review)}
-      className="group relative flex cursor-pointer flex-col"
+      className="group relative cursor-pointer break-inside-avoid mb-3 sm:mb-6 w-full"
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md w-full">
+      <div className="relative overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md w-full min-h-[150px]">
         
         {!isImageLoaded && (
           <div className="absolute inset-0 bg-foreground/5 animate-pulse z-0" />
@@ -86,7 +86,7 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
           loading={index < 6 ? 'eager' : 'lazy'}
           decoding="async"
           onLoad={() => setIsImageLoaded(true)}
-          className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${
+          className={`block w-full h-auto transition-all duration-700 group-hover:scale-105 ${
             isImageLoaded ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -102,6 +102,9 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
 }
 
 export default function ReviewsPage() {
+  // Ref для железобетонной фиксации скролла на iOS
+  const scrollPositionRef = useRef(0);
+
   useEffect(() => {
     let meta = document.querySelector('meta[name="robots"]');
     let wasCreated = false;
@@ -224,15 +227,34 @@ export default function ReviewsPage() {
     };
   }, []);
 
+  // УЛУЧШЕННЫЙ БЛОКИРОВЩИК СКРОЛЛА (Защита от сдвига клавиатуры)
   useEffect(() => {
     if (selectedReview || isFullscreenZoom) {
+      // Сохраняем текущую позицию
+      scrollPositionRef.current = window.scrollY;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // Жестко фиксируем body
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
+      
+      // Компенсируем исчезнувший скроллбар на ПК
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
     } else {
+      // Снимаем замки
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
       document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+      
+      // Возвращаем юзера точно туда, где он был
+      window.scrollTo(0, scrollPositionRef.current);
     }
-    return () => {
-      document.body.style.overflow = '';
-    };
   }, [selectedReview, isFullscreenZoom]);
 
   useEffect(() => {
@@ -490,16 +512,16 @@ export default function ReviewsPage() {
           </motion.div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-16">
+            <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 sm:gap-6">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="flex flex-col animate-pulse">
-                  <div className="bg-foreground/5 rounded-xl aspect-[3/4] w-full shadow-sm"></div>
+                <div key={i} className="flex flex-col animate-pulse break-inside-avoid mb-3 sm:mb-6">
+                  <div className={`bg-foreground/5 rounded-xl w-full shadow-sm ${i % 3 === 0 ? 'h-[250px]' : i % 2 === 0 ? 'h-[320px]' : 'h-[180px]'}`}></div>
                 </div>
               ))}
             </div>
           ) : reviews.length > 0 ? (
             <>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-16">
+              <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 sm:gap-6">
                 {reviews.slice(0, visibleCount).map((review, index) => (
                   <GalleryCard
                     key={review._id || index}
@@ -551,10 +573,10 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex h-[100dvh] w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-foreground/15 rounded-none"
+              // ИЗМЕНИЛИ: h-[100dvh] -> h-full для стабильности на iOS
+              className="relative z-10 flex h-full w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-foreground/15 rounded-none"
             >
               
-              {/* ПЛАВАЮЩАЯ КНОПКА BACK ДЛЯ МОБИЛОК (Прямо поверх фото) */}
               <button
                 onClick={handleCloseReview}
                 className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-full px-5 py-2.5 transition-all border backdrop-blur-md bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95 sm:hidden"
@@ -639,10 +661,10 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex h-[100dvh] w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-foreground/15 rounded-none"
+              // ИЗМЕНИЛИ: h-[100dvh] -> h-full
+              className="relative z-10 flex h-full w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-foreground/15 rounded-none"
             >
               
-              {/* ПЛАВАЮЩАЯ КНОПКА BACK ДЛЯ ФОРМЫ */}
               <button
                 onClick={handleCloseForm}
                 className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-full px-5 py-2.5 transition-all border backdrop-blur-md bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95 sm:hidden"
@@ -659,7 +681,6 @@ export default function ReviewsPage() {
                 <X className="h-4 w-4" />
               </button>
 
-              {/* ДОБАВЛЕН pt-16 на мобилках, чтобы форма не залезала под кнопку */}
               <div className="modal-scrollbar flex-1 overflow-y-auto p-5 pt-16 sm:p-7 sm:pt-7 overscroll-contain pb-12 sm:pb-7">
                 {isSubmittedSuccess ? (
                   <motion.div
