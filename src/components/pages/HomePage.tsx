@@ -35,6 +35,26 @@ interface Review {
 }
 
 export default function HomePage() {
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]');
+    let wasCreated = false;
+
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'robots');
+      document.head.appendChild(meta);
+      wasCreated = true;
+    }
+
+    // Принудительно РАЗРЕШАЕМ индексацию главной и каталога
+    meta.setAttribute('content', 'index, follow');
+
+    return () => {
+      if (wasCreated && meta) {
+        document.head.removeChild(meta);
+      }
+    };
+  }, []);
   const [featuredProducts, setFeaturedProducts] = useState<Products[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -337,7 +357,7 @@ export default function HomePage() {
           <div className="max-w-[120rem] mx-auto w-full min-w-0">
             <div className="text-center mb-8 md:mb-12 px-6 md:px-12">
               <h2 className="font-heading text-3xl md:text-5xl text-foreground">
-                Reviews
+                Gallery
               </h2>
             </div>
 
@@ -392,10 +412,10 @@ export default function HomePage() {
                           Want to see more?
                         </h3>
                         <Link
-                          to="/reviews"
+                          to="/gallery"
                           className="inline-block font-heading text-xs md:text-sm text-foreground hover:text-soft-gold transition-colors tracking-widest uppercase border-b border-foreground/20 pb-1 group-hover:border-soft-gold"
                         >
-                          View All Reviews →
+                          View Gallery →
                         </Link>
                       </div>
                     )}

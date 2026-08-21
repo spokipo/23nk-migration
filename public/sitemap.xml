@@ -14,22 +14,10 @@
   </url>
   <!-- Галерея кастомных луков -->
   <url>
-    <loc>https://i23nk.com/reviews</loc>
+    <loc>https://i23nk.com/gallery</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-  <!-- Юридические страницы -->
-  <url>
-    <loc>https://i23nk.com/terms-conditions</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://i23nk.com/privacy-policy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.3</priority>
-  </url>
-   <url>
    <!-- Доставка -->
     <loc>https://i23nk.com/delivery</loc>
     <changefreq>monthly</changefreq>

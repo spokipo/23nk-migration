@@ -109,6 +109,26 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
 }
 
 export default function ReviewsPage() {
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="robots"]');
+    let wasCreated = false;
+
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'robots');
+      document.head.appendChild(meta);
+      wasCreated = true;
+    }
+
+    // Принудительно РАЗРЕШАЕМ индексацию главной и каталога
+    meta.setAttribute('content', 'index, follow');
+
+    return () => {
+      if (wasCreated && meta) {
+        document.head.removeChild(meta);
+      }
+    };
+  }, []);
   const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Reviews | null>(null);

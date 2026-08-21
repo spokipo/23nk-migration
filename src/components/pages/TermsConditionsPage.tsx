@@ -3,6 +3,31 @@ import Header from '@/components/Header';
 import { motion } from 'framer-motion';
 
 export default function TermsConditionsPage() {
+  useEffect(() => {
+    // Ищем, нет ли уже такого тега, чтобы не плодить дубликаты
+    let meta = document.querySelector('meta[name="robots"]');
+    let wasCreated = false;
+
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'robots');
+      document.head.appendChild(meta);
+      wasCreated = true;
+    }
+
+    // Жестко запрещаем индексацию этой страницы
+    meta.setAttribute('content', 'noindex, follow');
+
+    return () => {
+      // Когда уходим со страницы — заметаем следы
+      if (wasCreated && meta) {
+        document.head.removeChild(meta);
+      } else if (meta) {
+        // Если тег был до нас, возвращаем ему базовые настройки
+        meta.setAttribute('content', 'index, follow');
+      }
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-background font-paragraph text-foreground">
       <Header />

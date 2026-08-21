@@ -65,19 +65,20 @@ export default function DeliveryPage() {
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20 flex flex-col">
       <Header />
 
-      <main className="flex-1 py-12 md:py-24">
+      {/* Выровняли отступы (py-8 md:py-16) в точности как на странице Contact */}
+      <main className="flex-1 py-8 md:py-16">
         <div className="max-w-[120rem] mx-auto px-6 md:px-20">
 
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-16 md:mb-20"
+            className="text-center mb-10 md:mb-16 flex flex-col items-center"
           >
-            <h1 className="font-heading text-3xl md:text-5xl text-foreground mb-4">
+            <h1 className="font-heading text-2xl md:text-4xl text-foreground mb-3">
               Shipping & Delivery
             </h1>
-            <p className="font-paragraph text-xs md:text-sm text-foreground/70 max-w-xl mx-auto leading-relaxed">
+            <p className="font-paragraph text-xs md:text-sm text-foreground/60 max-w-xl mx-auto text-center leading-relaxed">
               Information about order processing, crafting timelines, and safe international shipping directly to your door.
             </p>
           </motion.div>

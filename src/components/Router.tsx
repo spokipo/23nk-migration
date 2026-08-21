@@ -56,10 +56,10 @@ const router = createBrowserRouter([
         },
       },
       {
-        path: "reviews",
+        path: "gallery",
         element: <ReviewsPage />,
         handle: {
-          pageIdentifier: 'reviews',
+          pageIdentifier: 'gallery',
         },
       },
       {

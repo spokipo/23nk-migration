@@ -14,7 +14,7 @@ export default function Header() {
   const navLinks = [
     { path: '/', label: 'Home' },
     { path: '/catalog', label: 'Catalog' },
-    { path: '/reviews', label: 'Reviews' },
+    { path: '/gallery', label: 'Gallery' },
     { path: '/delivery', label: 'Delivery' },
     { path: '/contact', label: 'Contact' },
   ];

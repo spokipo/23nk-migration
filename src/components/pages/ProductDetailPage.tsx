@@ -10,9 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { getOptimizedWixImage } from '@/lib/imageUtils'; // Проверь путь к файлу!
-
-
+import { getOptimizedWixImage } from '@/lib/imageUtils'; 
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -20,19 +18,16 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState<Products[]>([]);
   const [currentImage, setCurrentImage] = useState(0);
 
-  // Состояния загрузки
   const [isMainImageLoading, setIsMainImageLoading] = useState(true);
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'claim' | 'custom'>('claim');
   const [activeAccordion, setActiveAccordion] = useState<'desc' | 'materials' | null>('desc');
 
-  // Стейты для десктопного зума ВНУТРИ модалки
   const modalImgRef = useRef<HTMLDivElement>(null);
   const [modalZoomPos, setModalZoomPos] = useState({ x: 0, y: 0 });
   const [showModalZoom, setShowModalZoom] = useState(false);
 
-  // Стейты для мобильного Pinch-to-Zoom
   const [touchScale, setTouchScale] = useState(1);
   const [touchPos, setTouchPos] = useState({ x: 0, y: 0 });
   const touchState = useRef({
@@ -89,44 +84,33 @@ export default function ProductDetailPage() {
     product?.additionalImage2,
   ].filter(Boolean) as string[];
 
-  // Умная фоновая предзагрузка (Без тормозов при старте)
   useEffect(() => {
     if (!images.length) return;
-
-    // Убираем крутилку спиннера
     setIsMainImageLoading(false);
 
-    // Даем браузеру ровно 1 секунду, чтобы он бросил всю скорость интернета 
-    // на загрузку ПЕРВОЙ главной фотки.
     const preloadTimer = setTimeout(() => {
-      // Через секунду начинаем тихонько, в фоне, качать остальные фотки (со 2-й и дальше).
-      // К моменту, когда пользователь решит свайпнуть, они уже будут лежать в кэше телефона!
       images.slice(1).forEach((src) => {
-        const validSrc = getOptimizedWixImage(src);
+        const validSrc = getOptimizedWixImage(src, 1200, 1200);
         if (!validSrc) return;
         const img = new window.Image();
         img.src = validSrc;
       });
-    }, 1000); // 1000 миллисекунд = 1 секунда задержки
+    }, 1000); 
 
     return () => clearTimeout(preloadTimer);
-  }, [product?._id]);
+  }, [product?._id, images]);
 
-// Динамический SEO title страницы товара
   useEffect(() => {
     if (product?.name) {
-      document.title = `${product.name} | I23NK`;
+      document.title = `I23NK | ${product.name}`;
     } else {
-      document.title = 'Custom Upcycled Corsets | I23NK';
+      document.title = 'I23NK | Custom Upcycled Corsets';
     }
-    
-    // Возвращаем дефолтный тайтл при уходе со страницы товара
     return () => {
       document.title = 'I23NK | Pieces with a history, tailored for the future';
     };
   }, [product?.name]);
 
-  // Закрытие модалок на Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -149,9 +133,6 @@ export default function ProductDetailPage() {
     };
   }, [isFullscreenZoom, isDialogOpen]);
 
-
-
-  // Зум на весь экран
   const handleOpenZoom = (index?: number) => {
     if (index !== undefined) {
       setCurrentImage(index);
@@ -170,7 +151,6 @@ export default function ProductDetailPage() {
     }, 150);
   };
 
-  // Десктопный зум внутри модалки
   const handleModalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!modalImgRef.current) return;
     const { left, top, width, height } = modalImgRef.current.getBoundingClientRect();
@@ -179,7 +159,6 @@ export default function ProductDetailPage() {
     setModalZoomPos({ x, y });
   };
 
-  // Мобильный Pinch-to-Zoom
   const getDistance = (touches: React.TouchList) => {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
@@ -251,18 +230,26 @@ export default function ProductDetailPage() {
     );
   }
 
-  // Универсальная проверка наличия (покрывает inStock, instock, in_stock)
-  const isInStock = Boolean(
+  // === ЛОГИКА СТАТУСОВ ===
+  const isReserved = (product as any).isReserved === true;
+  const isSold = (product as any).isSold === true;
+  const isOnSale = (product as any).isOnSale === true;
+  const oldPrice = (product as any).oldPrice;
+
+  const rawInStock = Boolean(
     product.inStock ?? 
     (product as any).instock ?? 
     (product as any).in_stock
   );
 
+  // Товар доступен для покупки ТОЛЬКО если он в стоке, НЕ в резерве И НЕ продан
+  const isInStock = rawInStock && !isReserved && !isSold;
+
   const jsonLd = {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     name: product.name,
-    image: images.map(getOptimizedWixImage),
+    image: images.map(img => getOptimizedWixImage(img)),
     description: product.fullDescription || product.shortDescription,
     offers: {
       '@type': 'Offer',
@@ -285,7 +272,6 @@ export default function ProductDetailPage() {
       <main className="py-6 md:py-12 overflow-hidden md:overflow-visible relative">
         <div className="max-w-[120rem] mx-auto px-4 md:px-20">
           
-          {/* Хлебные крошки */}
           <nav className="mb-6 flex items-center text-[10px] md:text-xs font-heading text-foreground/50">
             <Link to="/" className="hover:text-soft-gold transition-colors">
               Home
@@ -300,14 +286,12 @@ export default function ProductDetailPage() {
 
           <div className="grid md:grid-cols-2 gap-8 md:gap-10 lg:gap-16 items-start">
             
-            {/* ГАЛЕРЕЯ ТОВАРА */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
               className="relative w-full min-w-0"
             >
-              {/* МОБИЛЬНАЯ КАРУСЕЛЬ */}
               <div
                 className="md:hidden flex overflow-x-auto snap-x snap-mandatory scrollbar-hide gap-3 pb-2 w-full"
                 onScroll={handleMobileScroll}
@@ -319,11 +303,9 @@ export default function ProductDetailPage() {
                     onClick={() => handleOpenZoom(idx)}
                   >
                     <Image
-                      src={getOptimizedWixImage(img)}
+                      src={getOptimizedWixImage(img, 1200, 1200) || ''}
                       alt={product.name || 'Product'}
                       className="w-full h-full object-cover"
-                      // Первая грузится агрессивно. Остальные ждут свайпа (но по факту
-                      // подтянутся из кэша благодаря таймеру выше)
                       loading={idx === 0 ? "eager" : "lazy"} 
                       decoding={idx === 0 ? "sync" : "async"} 
                     />
@@ -331,7 +313,6 @@ export default function ProductDetailPage() {
                 ))}
               </div>
 
-              {/* Мобильные точки-индикаторы */}
               {images.length > 1 && (
                 <div className="flex justify-center gap-2 mt-3 mb-2 md:hidden">
                   {images.map((_, idx) => (
@@ -347,7 +328,6 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* ДЕСКТОПНОЕ ФОТО */}
               <div
                 className="hidden md:flex bg-ivory rounded-2xl overflow-hidden mb-4 aspect-square relative shadow-sm group cursor-pointer items-center justify-center"
                 onClick={() => handleOpenZoom(currentImage)}
@@ -359,7 +339,7 @@ export default function ProductDetailPage() {
                 )}
 
                 <Image
-                  src={getOptimizedWixImage(images[currentImage])}
+                  src={getOptimizedWixImage(images[currentImage], 1200, 1200) || ''}
                   alt={product.name || 'Corset'}
                   className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
                   loading="eager"
@@ -373,7 +353,6 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Десктопные миниатюры */}
               {images.length > 1 && (
                 <div className="hidden md:grid grid-cols-4 gap-3">
                   {images.map((image, index) => (
@@ -388,7 +367,7 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       <Image
-                        src={getOptimizedWixImage(image)}
+                        src={getOptimizedWixImage(image, 400, 400) || ''}
                         alt={product.name || 'Thumbnail'}
                         className="w-full h-full object-cover"
                         loading="eager"
@@ -400,32 +379,66 @@ export default function ProductDetailPage() {
               )}
             </motion.div>
 
-            {/* ИНФОРМАЦИЯ О ТОВАРЕ */}
             <motion.div
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
               className="flex flex-col md:sticky md:top-24"
             >
-              {/* Плашка Ready to Ship */}
-              {isInStock && (
-                <div className="mb-3">
+              {/* ПЛАШКИ (Badges) */}
+              <div className="mb-4 flex flex-wrap gap-2">
+                {/* 1. Плашка Sold - Черная строгая */}
+                {isSold && (
+                  <span className="inline-block bg-foreground text-background px-3.5 py-1 rounded-full text-xs font-heading font-semibold shadow-sm">
+                    Sold
+                  </span>
+                )}
+                
+                {/* 2. Плашка Reserved - Серая (показываем если не продано) */}
+                {isReserved && !isSold && (
+                  <span className="inline-block bg-foreground/50 backdrop-blur-sm text-ivory px-3.5 py-1 rounded-full text-xs font-heading font-semibold shadow-sm">
+                    Reserved
+                  </span>
+                )}
+                
+                {/* 3. Плашка Ready to Ship - Золотая (только если вещь 100% свободна) */}
+                {!isReserved && !isSold && rawInStock && (
                   <span className="inline-block bg-soft-gold text-ivory px-3.5 py-1 rounded-full text-xs font-heading font-semibold shadow-sm">
                     Ready to Ship
                   </span>
-                </div>
-              )}
+                )}
+                
+                {/* 4. Плашка Sale - Красная */}
+                {isOnSale && (
+                  <span className="inline-block bg-red-800/90 text-ivory px-3.5 py-1 rounded-full text-xs font-heading font-semibold shadow-sm">
+                    Sale
+                  </span>
+                )}
+              </div>
 
               <h1 className="font-heading text-2xl md:text-4xl text-foreground mb-2">
                 {product.name}
               </h1>
 
-              <p className="font-heading text-2xl md:text-3xl text-soft-gold font-bold mb-6">
-                ${product.price?.toFixed(2)}
-              </p>
+              {/* ЦЕНЫ */}
+              <div className="flex items-center gap-3 mb-6">
+                {isOnSale && oldPrice ? (
+                  <>
+                    <p className="font-heading text-xl md:text-2xl text-foreground/40 line-through">
+                      ${oldPrice.toFixed(2)}
+                    </p>
+                    <p className="font-heading text-2xl md:text-3xl text-red-800/90 font-bold">
+                      ${product.price?.toFixed(2)}
+                    </p>
+                  </>
+                ) : (
+                  <p className="font-heading text-2xl md:text-3xl text-soft-gold font-bold">
+                    ${product.price?.toFixed(2)}
+                  </p>
+                )}
+              </div>
 
               <div>
-                {/* Кнопка: при наличии открывает Claim, иначе Custom */}
                 <Button
                   onClick={() => handleOpenModal(isInStock ? 'claim' : 'custom')}
                   className="w-full bg-foreground text-background hover:bg-soft-gold hover:text-white transition-all rounded-full py-6 text-xs sm:text-sm font-heading tracking-widest uppercase shadow-md"
@@ -438,7 +451,6 @@ export default function ProductDetailPage() {
                 <span>Worldwide Express Shipping</span>
               </div>
 
-              {/* АККОРДЕОНЫ */}
               <div className="mt-8 border-t border-foreground/10 divide-y divide-foreground/10">
                 <div className="py-4">
                   <button
@@ -543,7 +555,7 @@ export default function ProductDetailPage() {
                     <Link to={`/product/${related._id}`} className="group block relative">
                       <div className="bg-ivory rounded-xl overflow-hidden mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md relative">
                         <Image
-                          src={getOptimizedWixImage(related.mainImage, 600, 600)}
+                          src={getOptimizedWixImage(related.mainImage, 600, 600) || ''}
                           alt={related.name || 'Corset'}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
@@ -607,7 +619,7 @@ export default function ProductDetailPage() {
                 >
                   <Image 
                     key={`zoom-${product._id}-${currentImage}`} 
-                    src={getOptimizedWixImage(images[currentImage], 2400, 2400)} // Максимальное качество!
+                    src={getOptimizedWixImage(images[currentImage], 2400, 2400) || ''} 
                     alt={product.name || 'Zoomed View'} 
                     draggable={false} 
                     className="max-w-full max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain select-none" 
@@ -627,8 +639,7 @@ export default function ProductDetailPage() {
                     showModalZoom ? 'opacity-100' : 'opacity-0'
                   }`}
                   style={{
-                    // Здесь тоже запрашиваем 2400px для эффекта лупы на десктопе
-                    backgroundImage: `url(${getOptimizedWixImage(images[currentImage], 2400, 2400)})`, 
+                    backgroundImage: `url(${getOptimizedWixImage(images[currentImage], 2400, 2400) || ''})`,
                     backgroundPosition: `${modalZoomPos.x}% ${modalZoomPos.y}%`,
                     backgroundSize: '175%',
                     backgroundRepeat: 'no-repeat',
