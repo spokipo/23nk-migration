@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { Image } from '@/components/ui/image';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-// import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import {
   Select,
   SelectContent,
@@ -15,7 +14,6 @@ import { ContactFormSubmissions } from '@/entities';
 import { useToast } from '@/hooks/use-toast';
 import { BaseCrudService } from '@/integrations';
 import { sendOrderNotification } from '@/integrations/notifications';
-// import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { Country, State, City } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X } from 'lucide-react';
@@ -24,11 +22,8 @@ import { createPortal } from 'react-dom';
 
 // Полный список стран доставки Nova Poshta Global (ISO Alpha-2 коды)
 const NOVA_POSHTA_COUNTRIES = [
-  // Європа
   'AT', 'UA',  'AL', 'AD', 'BE', 'BG', 'BA', 'VA', 'GB', 'GR', 'GI', 'DK', 'EE', 'IE', 'IS', 'ES', 'IT', 'CY', 'LV', 'LT', 'LI', 'LU', 'MT', 'MD', 'MC', 'NL', 'DE', 'NO', 'MK', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'TR', 'CZ', 'ME', 'HU', 'FI', 'FR', 'HR', 'CH', 'SE',
-  // Північна Америка, Китай та Гонконг
   'US', 'CA', 'CN', 'HK',
-  // Інший світ
   'AU', 'AZ', 'DZ', 'AS', 'AO', 'AI', 'AG', 'AR', 'AW', 'AF', 'BS', 'BD', 'BB', 'BH', 'BZ', 'BJ', 'BM', 'BO', 'BQ', 'BW', 'BR', 'VG', 'BN', 'BF', 'BI', 'BT', 'VN', 'VU', 'VI', 'VE', 'AM', 'GA', 'HT', 'GM', 'GH', 'GN', 'GW', 'HN', 'GE', 'GY', 'GP', 'GT', 'GD', 'GL', 'GU', 'DJ', 'DM', 'DO', 'EC', 'ER', 'SZ', 'ET', 'EG', 'ZM', 'ZW', 'IL', 'IN', 'ID', 'IQ', 'JO', 'CV', 'KZ', 'KY', 'KH', 'CM', 'QA', 'KE', 'NE', 'KG', 'CO', 'KM', 'CG', 'CR', 'CI', 'KW', 'CK', 'CW', 'LA', 'LS', 'LR', 'LB', 'MU', 'MR', 'MG', 'YT', 'MO', 'MW', 'MY', 'ML', 'MV', 'MA', 'MQ', 'MH', 'MX', 'MZ', 'MN', 'NA', 'NP', 'NG', 'NI', 'NZ', 'NC', 'AE', 'OM', 'PK', 'PW', 'PS', 'PA', 'PG', 'PY', 'PE', 'ZA', 'MP', 'PR', 'KR', 'RE', 'RW', 'SV', 'WS', 'SA', 'SC', 'BL', 'SN', 'MF', 'SX', 'VC', 'KN', 'LC', 'SG', 'SB', 'TL', 'SL', 'TH', 'PF', 'TW', 'TZ', 'TC', 'TG', 'TO', 'TT', 'TN', 'UG', 'UZ', 'UY', 'FO', 'FJ', 'PH', 'GF', 'TD', 'CL', 'LK', 'JM', 'FM', 'JP'
 ];
 
@@ -58,13 +53,7 @@ export default function OrderModal({
   const [isMobile, setIsMobile] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Закомментировано до лучших времен (PayPal)
-  // const [showPayment, setShowPayment] = useState(false);
-  // const [paymentError, setPaymentError] = useState<string | null>(null);
-  // const [paypalClientId, setPaypalClientId] = useState<string | null>(null);
 
-  // Стейты для кодов локаций (нужны для country-state-city)
   const [selectedCountryCode, setSelectedCountryCode] = useState('');
   const [selectedStateCode, setSelectedStateCode] = useState('');
 
@@ -82,7 +71,6 @@ export default function OrderModal({
     message: '',
   });
 
-  // Получаем списки доступных локаций
   const availableStates = selectedCountryCode ? State.getStatesOfCountry(selectedCountryCode) : [];
   const hasStates = availableStates.length > 0;
 
@@ -98,15 +86,6 @@ export default function OrderModal({
     window.addEventListener('resize', checkIsMobile);
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
-
-  /* Закомментировано: запрос ключей PayPal
-  useEffect(() => {
-    fetch('/api/paypal/config')
-      .then((res) => res.json())
-      .then((data) => setPaypalClientId(data.clientId || null))
-      .catch(() => setPaypalClientId(null));
-  }, []);
-  */
 
   useEffect(() => {
     if (!isOpen) return;
@@ -144,8 +123,6 @@ export default function OrderModal({
     setSelectedCountryCode('');
     setSelectedStateCode('');
     setIsSubmittedSuccess(false);
-    // setShowPayment(false);
-    // setPaymentError(null);
   };
 
   const handleClose = () => {
@@ -158,6 +135,9 @@ export default function OrderModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    // Генерируем короткий красивый артикул из _id для удобства
+    const article = product._id ? product._id.slice(-6).toUpperCase() : 'UNKNOWN';
 
     try {
       let messageContent = '';
@@ -175,6 +155,7 @@ export default function OrderModal({
         messageContent = [
           `ORDER REQUEST (In-Stock Piece)`,
           `Product: ${product.name}`,
+          `SKU/ID: #${article} (Full ID: ${product._id})`, // <-- Скрытый тег добавлен сюда!
           `Price: $${product.price?.toFixed(2)}`,
           `----------------------------------------`,
           `SHIPPING DETAILS:`,
@@ -189,13 +170,12 @@ export default function OrderModal({
           `Contact Method: ${formData.preferredContactMethod}`,
           `Contact Details: ${contactDet}`,
           formData.message ? `\nNotes: ${formData.message}` : '',
-        ]
-          .filter(Boolean)
-          .join('\n');
+        ].filter(Boolean).join('\n');
       } else {
         messageContent = [
           `CUSTOM ORDER REQUEST`,
           `Product: ${product.name}`,
+          `Reference SKU: #${article} (Full ID: ${product._id})`, // <-- И сюда для кастома
           `Country: ${formData.country}`,
           `----------------------------------------`,
           `Additional Notes: ${formData.message}`,
@@ -209,23 +189,22 @@ export default function OrderModal({
         preferredContactMethod: preferredContact,
         contactDetails: contactDet,
         message: messageContent,
-        selectedCorset: product.name,
+        selectedCorset: `${product.name} (SKU: #${article})`, // <-- Добавлен в базу данных Wix
       };
 
       await BaseCrudService.create('contactformsubmissions', submission);
 
-      // В консьерж-режиме сразу отправляем уведомление и показываем успех для обоих режимов
       if (modalMode === 'claim') {
         await sendOrderNotification({
           title: '🛍️ NEW ORDER (In-Stock) - Awaiting Payment',
-          productName: product.name,
+          productName: `${product.name} (SKU: #${article})`, // <-- Добавлен в Telegram/Email уведомление
           price: product.price,
           formData: formData,
         });
       } else {
         await sendOrderNotification({
           title: '✨ Custom Order Request',
-          productName: product.name,
+          productName: `${product.name} (Ref: #${article})`, 
           price: product.price,
           formData: formData,
         });
@@ -264,7 +243,6 @@ export default function OrderModal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4 font-paragraph text-foreground">
-          {/* BACKDROP */}
           <motion.div
             className="fixed inset-0 bg-black/50 backdrop-blur-[2px]"
             initial={{ opacity: 0 }}
@@ -274,7 +252,6 @@ export default function OrderModal({
             onClick={handleClose}
           />
 
-          {/* MODAL CONTAINER */}
           <motion.div
             role="dialog"
             aria-modal="true"
@@ -282,12 +259,10 @@ export default function OrderModal({
             className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-h-[85vh] sm:max-w-[540px] sm:rounded-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* Mobile Drag Indicator */}
             <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
               <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
             </div>
 
-            {/* Desktop Close Button */}
             <button
               onClick={handleClose}
               className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
@@ -296,7 +271,6 @@ export default function OrderModal({
               <X className="h-4 w-4" />
             </button>
 
-            {/* SCROLLABLE AREA */}
             <div className="modal-scrollbar flex-1 overflow-y-auto p-5 sm:p-7">
               <AnimatePresence mode="wait">
                 {isSubmittedSuccess ? (
@@ -367,7 +341,6 @@ export default function OrderModal({
                             <Input id="fullName" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="font-heading text-base sm:text-sm rounded-lg" />
                           </div>
                           
-                          {/* COUNTRY SELECT */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <Label htmlFor="country" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-1 block">Country *</Label>
@@ -389,18 +362,17 @@ export default function OrderModal({
                                   <SelectValue placeholder="Select Country..." />
                                 </SelectTrigger>
                                 <SelectContent className="z-[110] max-h-60">
-  {Country.getAllCountries()
-    .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
-    .map((c) => (
-      <SelectItem key={c.isoCode} value={c.isoCode}>
-        {c.name}
-      </SelectItem>
-    ))}
-</SelectContent>
+                                  {Country.getAllCountries()
+                                    .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
+                                    .map((c) => (
+                                      <SelectItem key={c.isoCode} value={c.isoCode}>
+                                        {c.name}
+                                      </SelectItem>
+                                    ))}
+                                </SelectContent>
                               </Select>
                             </div>
                             
-                            {/* STATE SELECT */}
                             <div>
                               <Label htmlFor="stateRegion" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-1 block">State / Region *</Label>
                               {hasStates ? (
@@ -441,7 +413,6 @@ export default function OrderModal({
                           </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {/* CITY SELECT */}
                             <div>
                               <Label htmlFor="city" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-1 block">City *</Label>
                               {hasCities ? (
@@ -520,7 +491,6 @@ export default function OrderModal({
                             <Input id="fullName" required value={formData.fullName} onChange={(e) => setFormData({ ...formData, fullName: e.target.value })} className="font-heading text-base sm:text-sm rounded-lg" />
                           </div>
                           
-                          {/* COUNTRY SELECT FOR CUSTOM ORDERS */}
                           <div>
                             <Label htmlFor="country" className="font-heading text-[11px] uppercase tracking-wider text-foreground/70 mb-1.5 block">Country *</Label>
                             <Select
@@ -576,7 +546,6 @@ export default function OrderModal({
                         </>
                       )}
 
-                      {/* Unified Submit Buttons */}
                       <div className="pt-3 space-y-2">
                         <Button
                           type="submit"

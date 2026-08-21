@@ -21,27 +21,16 @@ import { Country } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X } from 'lucide-react';
 import React, { useEffect, useState, useRef } from 'react';
+import { getOptimizedWixImage } from '@/lib/imageUtils'; // Импорт нашей утилиты
 
 // Полный список стран доставки Nova Poshta Global (ISO Alpha-2 коды)
 const NOVA_POSHTA_COUNTRIES = [
-  // Європа
   'AT', 'UA', 'AL', 'AD', 'BE', 'BG', 'BA', 'VA', 'GB', 'GR', 'GI', 'DK', 'EE', 'IE', 'IS', 'ES', 'IT', 'CY', 'LV', 'LT', 'LI', 'LU', 'MT', 'MD', 'MC', 'NL', 'DE', 'NO', 'MK', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'TR', 'CZ', 'ME', 'HU', 'FI', 'FR', 'HR', 'CH', 'SE',
-  // Північна Америка, Китай та Гонконг
   'US', 'CA', 'CN', 'HK',
-  // Інший світ
   'AU', 'AZ', 'DZ', 'AS', 'AO', 'AI', 'AG', 'AR', 'AW', 'AF', 'BS', 'BD', 'BB', 'BH', 'BZ', 'BJ', 'BM', 'BO', 'BQ', 'BW', 'BR', 'VG', 'BN', 'BF', 'BI', 'BT', 'VN', 'VU', 'VI', 'VE', 'AM', 'GA', 'HT', 'GM', 'GH', 'GN', 'GW', 'HN', 'GE', 'GY', 'GP', 'GT', 'GD', 'GL', 'GU', 'DJ', 'DM', 'DO', 'EC', 'ER', 'SZ', 'ET', 'EG', 'ZM', 'ZW', 'IL', 'IN', 'ID', 'IQ', 'JO', 'CV', 'KZ', 'KY', 'KH', 'CM', 'QA', 'KE', 'NE', 'KG', 'CO', 'KM', 'CG', 'CR', 'CI', 'KW', 'CK', 'CW', 'LA', 'LS', 'LR', 'LB', 'MU', 'MR', 'MG', 'YT', 'MO', 'MW', 'MY', 'ML', 'MV', 'MA', 'MQ', 'MH', 'MX', 'MZ', 'MN', 'NA', 'NP', 'NG', 'NI', 'NZ', 'NC', 'AE', 'OM', 'PK', 'PW', 'PS', 'PA', 'PG', 'PY', 'PE', 'ZA', 'MP', 'PR', 'KR', 'RE', 'RW', 'SV', 'WS', 'SA', 'SC', 'BL', 'SN', 'MF', 'SX', 'VC', 'KN', 'LC', 'SG', 'SB', 'TL', 'SL', 'TH', 'PF', 'TW', 'TZ', 'TC', 'TG', 'TO', 'TT', 'TN', 'UG', 'UZ', 'UY', 'FO', 'FJ', 'PH', 'GF', 'TD', 'CL', 'LK', 'JM', 'FM', 'JP'
 ];
 
-// Хелпер для конвертации Wix URL в стандартный HTTPS
-const getValidImageUrl = (url: string) => {
-  if (!url) return '';
-  if (url.startsWith('wix:image://v1/')) {
-    const match = url.match(/wix:image:\/\/v1\/([^\/]+)/);
-    return match ? `https://static.wixstatic.com/media/${match[1]}` : url;
-  }
-  return url;
-};
-
+// Упрощенный хелпер: только достает сырой URL. Всю магию сжатия делает getOptimizedWixImage.
 const getImageUrl = (review: any) => {
   const rawImage =
     review?.reviewImage ||
@@ -51,14 +40,10 @@ const getImageUrl = (review: any) => {
     review?.src ||
     '';
 
-  let extractedUrl = '';
   if (typeof rawImage === 'object' && rawImage !== null) {
-    extractedUrl = rawImage.url || rawImage.src || '';
-  } else {
-    extractedUrl = rawImage;
+    return rawImage.url || rawImage.src || '';
   }
-
-  return getValidImageUrl(extractedUrl);
+  return rawImage;
 };
 
 // Отдельный компонент карточки с контролем загрузки изображения
@@ -71,7 +56,10 @@ interface GalleryCardProps {
 
 function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const imageUrl = getImageUrl(review);
+  
+  // Для сетки запрашиваем оптимальный вариант
+  const rawUrl = getImageUrl(review);
+  const imageUrl = getOptimizedWixImage(rawUrl, 1200, 1200); 
 
   return (
     <motion.div
@@ -79,12 +67,13 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: 0.4,
-        delay: index * 0.04,
+        delay: (index % 12) * 0.04, // Адаптировано под пагинацию
       }}
       onClick={() => onOpenReview(review)}
       className="group relative flex cursor-pointer flex-col"
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md mb-2.5 sm:mb-3">
+      {/* Убрали нижний марджин, так как текста под фото больше нет */}
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md w-full">
         
         {/* Индивидуальный скелетон карточки до завершения декодирования */}
         {!isImageLoaded && (
@@ -98,9 +87,9 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
         )}
 
         <img
-          src={imageUrl}
+          src={imageUrl || ''}
           alt={review.reviewTitle || 'Customer Review'}
-          loading={index < 4 ? 'eager' : 'lazy'}
+          loading={index < 6 ? 'eager' : 'lazy'}
           decoding="async"
           onLoad={() => setIsImageLoaded(true)}
           className={`w-full h-full object-cover transition-all duration-700 group-hover:scale-105 ${
@@ -114,12 +103,7 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
           </span>
         </div>
       </div>
-
-      <div className="mt-1 flex flex-col px-0.5">
-        <h3 className="line-clamp-2 font-heading text-xs text-foreground transition-colors group-hover:text-soft-gold sm:text-sm leading-snug">
-          {review.reviewTitle || 'Custom Handcrafted Outfit'}
-        </h3>
-      </div>
+      {/* Блок с текстом под карточкой полностью удален для чистой галереи */}
     </motion.div>
   );
 }
@@ -129,6 +113,9 @@ export default function ReviewsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Reviews | null>(null);
   
+  // Стейт для пагинации
+  const [visibleCount, setVisibleCount] = useState(12);
+
   // Состояния загрузки
   const [loadingReviewId, setLoadingReviewId] = useState<string | null>(null);
   const [isZoomPreparing, setIsZoomPreparing] = useState(false);
@@ -193,16 +180,19 @@ export default function ReviewsPage() {
         if (!isMounted) return;
         setReviews(items);
 
-        // Предзагружаем верхние 6 фото перед отключением скелетона
+        // Предзагружаем верхние 6 фото (сразу в оптимизированном размере 1200x1200)
         if (items.length > 0) {
-          const topImages = items.slice(0, 6).map(getImageUrl).filter(Boolean);
+          const topImages = items.slice(0, 6).map(item => {
+            const rawUrl = getImageUrl(item);
+            return getOptimizedWixImage(rawUrl, 1200, 1200);
+          }).filter(Boolean);
           
           await Promise.race([
             Promise.allSettled(
               topImages.map((src) => {
                 return new Promise((resolve) => {
                   const img = new window.Image();
-                  img.src = src;
+                  img.src = src as string;
                   if (img.complete) {
                     resolve(true);
                   } else {
@@ -212,7 +202,7 @@ export default function ReviewsPage() {
                 });
               })
             ),
-            new Promise((resolve) => setTimeout(resolve, 800)) // Тайм-аут, чтобы не задерживать UI на медленном интернете
+            new Promise((resolve) => setTimeout(resolve, 800))
           ]);
         }
       } catch (error) {
@@ -240,7 +230,6 @@ export default function ReviewsPage() {
     };
   }, [selectedReview, isFullscreenZoom]);
 
-  // Закрытие модалок на Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -274,9 +263,9 @@ export default function ReviewsPage() {
     setIsSubmittedSuccess(false);
   };
 
-  // Загрузка превью модалки
   const handleOpenReview = (review: Reviews) => {
-    const currentSrc = getImageUrl(review);
+    const rawSrc = getImageUrl(review);
+    const currentSrc = getOptimizedWixImage(rawSrc, 1200, 1200); // Грузим 1200px для модалки превью
     if (!currentSrc) return;
 
     setLoadingReviewId(review._id);
@@ -314,9 +303,9 @@ export default function ReviewsPage() {
     setIsSubmittedSuccess(false);
   };
 
-  // Загрузка Fullscreen зума
   const handleOpenZoom = () => {
-    const currentSrc = selectedReview ? getImageUrl(selectedReview) : '';
+    const rawSrc = selectedReview ? getImageUrl(selectedReview) : '';
+    const currentSrc = getOptimizedWixImage(rawSrc, 2400, 2400); // Максимальное качество для фуллскрина
     if (!currentSrc) return;
 
     setIsZoomPreparing(true);
@@ -345,7 +334,6 @@ export default function ReviewsPage() {
     }, 200);
   };
 
-  // Математика десктопного зума
   const handleModalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!modalImgRef.current) return;
     const { left, top, width, height } = modalImgRef.current.getBoundingClientRect();
@@ -354,7 +342,6 @@ export default function ReviewsPage() {
     setModalZoomPos({ x, y });
   };
 
-  // Математика мобильного Pinch-to-Zoom
   const getDistance = (touches: React.TouchList) => {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
@@ -496,26 +483,39 @@ export default function ReviewsPage() {
           </motion.div>
 
           {isLoading ? (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-14">
-              {[...Array(8)].map((_, i) => (
+            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-16">
+              {[...Array(12)].map((_, i) => (
                 <div key={i} className="flex flex-col animate-pulse">
-                  <div className="bg-foreground/5 rounded-xl aspect-[3/4] mb-3 sm:mb-4 w-full shadow-sm"></div>
-                  <div className="h-4 bg-foreground/5 rounded w-3/4 mt-1"></div>
+                  <div className="bg-foreground/5 rounded-xl aspect-[3/4] w-full shadow-sm"></div>
                 </div>
               ))}
             </div>
           ) : reviews.length > 0 ? (
-            <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-14">
-              {reviews.map((review, index) => (
-                <GalleryCard
-                  key={review._id || index}
-                  review={review}
-                  index={index}
-                  loadingReviewId={loadingReviewId}
-                  onOpenReview={handleOpenReview}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4 md:gap-y-16">
+                {reviews.slice(0, visibleCount).map((review, index) => (
+                  <GalleryCard
+                    key={review._id || index}
+                    review={review}
+                    index={index}
+                    loadingReviewId={loadingReviewId}
+                    onOpenReview={handleOpenReview}
+                  />
+                ))}
+              </div>
+
+              {/* Кнопка Load More */}
+              {visibleCount < reviews.length && (
+                <div className="mt-12 md:mt-16 flex justify-center">
+                  <button
+                    onClick={() => setVisibleCount(prev => prev + 12)}
+                    className="px-8 py-3 border border-foreground/20 text-foreground text-xs font-heading uppercase tracking-widest rounded-full hover:border-soft-gold hover:text-soft-gold transition-colors duration-300 shadow-sm"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="py-20 text-center">
               <p className="font-heading text-base text-foreground/60 md:text-lg">
@@ -570,7 +570,7 @@ export default function ReviewsPage() {
                   )}
 
                   <Image
-                    src={getImageUrl(selectedReview)}
+                    src={getOptimizedWixImage(getImageUrl(selectedReview), 1200, 1200)}
                     alt={selectedReview.reviewTitle || 'Review'}
                     fill
                     className="h-full w-full object-cover transition-all duration-700 group-hover:scale-105"
@@ -677,7 +677,7 @@ export default function ReviewsPage() {
                     <div className="mb-3 flex items-center gap-3 rounded-xl border border-foreground/10 bg-ivory p-3">
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg">
                         <Image
-                          src={getImageUrl(selectedReview)}
+                          src={getOptimizedWixImage(getImageUrl(selectedReview), 400, 400)}
                           alt="Product"
                           fill
                           className="object-cover"
@@ -905,7 +905,7 @@ export default function ReviewsPage() {
                 <div className={`transition-opacity duration-300 ${showModalZoom ? 'md:opacity-0' : 'opacity-100'}`}>
                   <img
                     key={`zoom-${selectedReview._id}`}
-                    src={getImageUrl(selectedReview)}
+                    src={getOptimizedWixImage(getImageUrl(selectedReview), 2400, 2400) || ''}
                     alt={selectedReview.reviewTitle || 'Zoomed View'}
                     draggable={false}
                     className="max-w-full max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain select-none"
@@ -923,7 +923,7 @@ export default function ReviewsPage() {
                       showModalZoom ? 'opacity-100' : 'opacity-0'
                     }`}
                     style={{
-                      backgroundImage: `url(${getImageUrl(selectedReview)})`,
+                      backgroundImage: `url(${getOptimizedWixImage(getImageUrl(selectedReview), 2400, 2400) || ''})`,
                       backgroundPosition: `${modalZoomPos.x}% ${modalZoomPos.y}%`,
                       backgroundSize: '150%',
                       backgroundRepeat: 'no-repeat',

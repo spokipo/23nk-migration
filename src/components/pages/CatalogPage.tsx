@@ -6,6 +6,7 @@ import { BaseCrudService } from '@/integrations';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { getOptimizedWixImage } from '@/lib/imageUtils';
 
 export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -13,6 +14,9 @@ export default function CatalogPage() {
   const [collections, setCollections] = useState<Collections[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');
+  
+  // Добавили стейт для пагинации (по умолчанию показываем 12 товаров)
+  const [visibleCount, setVisibleCount] = useState(12);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,6 +48,7 @@ export default function CatalogPage() {
   // Функция переключения фильтра с синхронизацией URL
   const handleFilterChange = (filterId: string) => {
     setActiveFilter(filterId);
+    setVisibleCount(12); // Сбрасываем счетчик обратно до 12 при смене категории
 
     if (filterId === 'all') {
       searchParams.delete('collection');
@@ -173,9 +178,9 @@ export default function CatalogPage() {
 
           {/* Grid / Skeletons / Empty State */}
           {loading ? (
-            // Скелетная загрузка: 8 пустых карточек
+            // Скелетная загрузка: 12 пустых карточек для ровности
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
-              {[...Array(8)].map((_, i) => (
+              {[...Array(12)].map((_, i) => (
                 <div key={i} className="flex flex-col animate-pulse">
                   {/* Заглушка для фото (aspect-[3/4]) */}
                   <div className="bg-foreground/5 rounded-xl aspect-[3/4] mb-2.5 w-full"></div>
@@ -199,45 +204,59 @@ export default function CatalogPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
-              {filteredProducts.map((product, index) => (
-                <motion.div
-                  key={product._id}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.04 }}
-                >
-                  <Link to={`/product/${product._id}`} className="group block relative">
-                    {/* Применили aspect-[3/4] для единого стиля */}
-                    <div className="bg-ivory rounded-xl overflow-hidden mb-2.5 aspect-[3/4] relative shadow-sm transition-all duration-500 group-hover:shadow-md">
-                      <Image
-                        src={product.mainImage || ''}
-                        alt={product.name || 'Corset'}
-                        width={600}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8">
+                {/* Обрезаем массив до количества visibleCount */}
+                {filteredProducts.slice(0, visibleCount).map((product, index) => (
+                  <motion.div
+                    key={product._id}
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: (index % 12) * 0.04 }}
+                  >
+                    <Link to={`/product/${product._id}`} className="group block relative">
+                      <div className="bg-ivory rounded-xl overflow-hidden mb-2.5 aspect-[3/4] relative shadow-sm transition-all duration-500 group-hover:shadow-md">
+                        <Image
+                         src={getOptimizedWixImage(product.mainImage, 600, 600) || ''} 
+                         alt={product.name || 'Corset'}
+                         width={600}
+                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        />
 
-                      {product.inStock === true && (
-                        <div className="absolute top-2.5 right-2.5 bg-soft-gold text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
-                          Ready to Ship
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <div className="min-h-[2.5rem] md:min-h-[2.8rem] flex items-start">
-                        <h3 className="font-heading text-xs sm:text-base text-foreground group-hover:text-soft-gold transition-colors line-clamp-2 leading-tight">
-                          {product.name}
-                        </h3>
+                        {product.inStock === true && (
+                          <div className="absolute top-2.5 right-2.5 bg-soft-gold text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
+                            Ready to Ship
+                          </div>
+                        )}
                       </div>
-                      <p className="font-heading text-xs sm:text-sm text-soft-gold font-bold mt-1">
-                        ${product.price?.toFixed(2)}
-                      </p>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
+
+                      <div className="flex flex-col">
+                        <div className="min-h-[2.5rem] md:min-h-[2.8rem] flex items-start">
+                          <h3 className="font-heading text-xs sm:text-base text-foreground group-hover:text-soft-gold transition-colors line-clamp-2 leading-tight">
+                            {product.name}
+                          </h3>
+                        </div>
+                        <p className="font-heading text-xs sm:text-sm text-soft-gold font-bold mt-1">
+                          ${product.price?.toFixed(2)}
+                        </p>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Кнопка Load More (показываем, если есть еще товары) */}
+              {visibleCount < filteredProducts.length && (
+                <div className="mt-12 md:mt-16 flex justify-center">
+                  <button
+                    onClick={() => setVisibleCount(prev => prev + 12)}
+                    className="px-8 py-3 border border-foreground/20 text-foreground text-xs font-heading uppercase tracking-widest rounded-full hover:border-soft-gold hover:text-soft-gold transition-colors duration-300 shadow-sm"
+                  >
+                    Load More
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>

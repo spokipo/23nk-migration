@@ -13,8 +13,10 @@ export default defineConfig({
   ],
 
   adapter: cloudflare({
-  platformProxy: true
-}),
+    platformProxy: {
+      enabled: false // <-- Завернули в объект
+    }
+  }),
 
   vite: {
     cacheDir: "node_modules/.cache/.vite",

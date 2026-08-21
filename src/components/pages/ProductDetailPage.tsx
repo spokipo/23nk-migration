@@ -10,15 +10,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ChevronRight, X, ZoomIn } from 'lucide-react';
 import { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { getOptimizedWixImage } from '@/lib/imageUtils'; // Проверь путь к файлу!
 
-const getValidImageUrl = (url?: string | null) => {
-  if (!url) return '';
-  if (url.startsWith('wix:image://v1/')) {
-    const match = url.match(/wix:image:\/\/v1\/([^\/]+)/);
-    return match ? `https://static.wixstatic.com/media/${match[1]}` : url;
-  }
-  return url;
-};
+
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -108,7 +102,7 @@ export default function ProductDetailPage() {
       // Через секунду начинаем тихонько, в фоне, качать остальные фотки (со 2-й и дальше).
       // К моменту, когда пользователь решит свайпнуть, они уже будут лежать в кэше телефона!
       images.slice(1).forEach((src) => {
-        const validSrc = getValidImageUrl(src);
+        const validSrc = getOptimizedWixImage(src);
         if (!validSrc) return;
         const img = new window.Image();
         img.src = validSrc;
@@ -121,9 +115,9 @@ export default function ProductDetailPage() {
 // Динамический SEO title страницы товара
   useEffect(() => {
     if (product?.name) {
-      document.title = `I23NK | ${product.name}`;
+      document.title = `${product.name} | I23NK`;
     } else {
-      document.title = 'I23NK | Custom Upcycled Corsets';
+      document.title = 'Custom Upcycled Corsets | I23NK';
     }
     
     // Возвращаем дефолтный тайтл при уходе со страницы товара
@@ -268,7 +262,7 @@ export default function ProductDetailPage() {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     name: product.name,
-    image: images.map(getValidImageUrl),
+    image: images.map(getOptimizedWixImage),
     description: product.fullDescription || product.shortDescription,
     offers: {
       '@type': 'Offer',
@@ -325,7 +319,7 @@ export default function ProductDetailPage() {
                     onClick={() => handleOpenZoom(idx)}
                   >
                     <Image
-                      src={getValidImageUrl(img)}
+                      src={getOptimizedWixImage(img)}
                       alt={product.name || 'Product'}
                       className="w-full h-full object-cover"
                       // Первая грузится агрессивно. Остальные ждут свайпа (но по факту
@@ -365,7 +359,7 @@ export default function ProductDetailPage() {
                 )}
 
                 <Image
-                  src={getValidImageUrl(images[currentImage])}
+                  src={getOptimizedWixImage(images[currentImage])}
                   alt={product.name || 'Corset'}
                   className="w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105"
                   loading="eager"
@@ -394,7 +388,7 @@ export default function ProductDetailPage() {
                       }`}
                     >
                       <Image
-                        src={getValidImageUrl(image)}
+                        src={getOptimizedWixImage(image)}
                         alt={product.name || 'Thumbnail'}
                         className="w-full h-full object-cover"
                         loading="eager"
@@ -549,7 +543,7 @@ export default function ProductDetailPage() {
                     <Link to={`/product/${related._id}`} className="group block relative">
                       <div className="bg-ivory rounded-xl overflow-hidden mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md relative">
                         <Image
-                          src={getValidImageUrl(related.mainImage)}
+                          src={getOptimizedWixImage(related.mainImage, 600, 600)}
                           alt={related.name || 'Corset'}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                           loading="lazy"
@@ -611,12 +605,12 @@ export default function ProductDetailPage() {
                     showModalZoom ? 'md:opacity-0' : 'opacity-100'
                   }`}
                 >
-                  <img
-                    key={`zoom-${product._id}-${currentImage}`}
-                    src={getValidImageUrl(images[currentImage])}
-                    alt={product.name || 'Zoomed View'}
-                    draggable={false}
-                    className="max-w-full max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain select-none"
+                  <Image 
+                    key={`zoom-${product._id}-${currentImage}`} 
+                    src={getOptimizedWixImage(images[currentImage], 2400, 2400)} // Максимальное качество!
+                    alt={product.name || 'Zoomed View'} 
+                    draggable={false} 
+                    className="max-w-full max-h-[85vh] sm:max-h-[90vh] w-auto h-auto object-contain select-none" 
                     style={{
                       transform: `translate3d(${touchPos.x}px, ${touchPos.y}px, 0) scale(${touchScale})`,
                       transition:
@@ -624,7 +618,7 @@ export default function ProductDetailPage() {
                           ? 'none'
                           : 'transform 0.2s ease-out',
                       WebkitUserDrag: 'none',
-                    }}
+                    }} 
                   />
                 </div>
 
@@ -633,9 +627,10 @@ export default function ProductDetailPage() {
                     showModalZoom ? 'opacity-100' : 'opacity-0'
                   }`}
                   style={{
-                    backgroundImage: `url(${getValidImageUrl(images[currentImage])})`,
+                    // Здесь тоже запрашиваем 2400px для эффекта лупы на десктопе
+                    backgroundImage: `url(${getOptimizedWixImage(images[currentImage], 2400, 2400)})`, 
                     backgroundPosition: `${modalZoomPos.x}% ${modalZoomPos.y}%`,
-                    backgroundSize: '250%',
+                    backgroundSize: '175%',
                     backgroundRepeat: 'no-repeat',
                   }}
                 />

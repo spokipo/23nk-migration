@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { ShieldCheck, Sparkles, Truck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getOptimizedWixImage } from '@/lib/imageUtils';
 
 interface Collection {
   _id: string;
@@ -145,7 +146,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
       <Header />
 
-      {/* HERO (Оптимизированная высота для мобильных) */}
+      {/* HERO */}
       <section className="relative w-full h-[58vh] sm:h-[75vh] min-h-[420px] max-h-[850px] overflow-hidden flex items-center justify-center">
         <div className="absolute inset-0 z-0">
           <Image
@@ -210,78 +211,80 @@ export default function HomePage() {
       </section>
 
       <div className="bg-background">
-        {/* 1. READY TO SHIP (Поднят выше для быстрых покупок) */}
-        <section className="py-12 md:py-20">
-          <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
-            <div className="text-center mb-8 md:mb-14">
-              <h2 className="font-heading text-3xl md:text-5xl text-foreground">
-                Ready to Ship
-              </h2>
-            </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8 mb-10">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="flex flex-col animate-pulse">
-                    <div className="bg-foreground/5 rounded-xl aspect-[3/4] mb-2.5 w-full shadow-sm"></div>
-                    <div className="h-4 bg-foreground/5 rounded w-3/4 mt-1 mb-2"></div>
-                    <div className="h-3 bg-foreground/5 rounded w-1/4"></div>
-                  </div>
-                ))}
+        {/* 1. READY TO SHIP */}
+        {(isLoading || featuredProducts.length > 0) && (
+          <section className="py-12 md:py-20">
+            <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
+              <div className="text-center mb-8 md:mb-14">
+                <h2 className="font-heading text-3xl md:text-5xl text-foreground">
+                  Ready to Ship
+                </h2>
               </div>
-            ) : featuredProducts.length > 0 ? (
-              <>
+
+              {isLoading ? (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8 mb-10">
-                  {featuredProducts.map((product, index) => (
-                    <motion.div
-                      key={product._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: index * 0.05 }}
-                    >
-                      <Link to={`/product/${product._id}`} className="group block relative">
-                        <div className="bg-ivory rounded-xl overflow-hidden mb-2 sm:mb-3 aspect-[3/4] shadow-sm transition-all duration-500 group-hover:shadow-md relative">
-                          <Image
-                            src={product.mainImage || ''}
-                            alt={product.name || 'Corset'}
-                            width={600}
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                          />
-                          <div className="absolute top-2.5 right-2.5 bg-soft-gold text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
-                            Ready to Ship
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-col">
-                          <div className="min-h-[2.5rem] md:min-h-[2.8rem] flex items-start">
-                            <h3 className="font-heading text-xs sm:text-base text-foreground group-hover:text-soft-gold transition-colors line-clamp-2 leading-tight">
-                              {product.name}
-                            </h3>
-                          </div>
-                          <p className="font-heading text-xs sm:text-sm text-soft-gold font-bold mt-1">
-                            ${product.price?.toFixed(2)}
-                          </p>
-                        </div>
-                      </Link>
-                    </motion.div>
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="flex flex-col animate-pulse">
+                      <div className="bg-foreground/5 rounded-xl aspect-[3/4] mb-2.5 w-full shadow-sm"></div>
+                      <div className="h-4 bg-foreground/5 rounded w-3/4 mt-1 mb-2"></div>
+                      <div className="h-3 bg-foreground/5 rounded w-1/4"></div>
+                    </div>
                   ))}
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-8 mb-10">
+                    {featuredProducts.map((product, index) => (
+                      <motion.div
+                        key={product._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, delay: index * 0.05 }}
+                      >
+                        <Link to={`/product/${product._id}`} className="group block relative">
+                          <div className="bg-ivory rounded-xl overflow-hidden mb-2 sm:mb-3 aspect-[3/4] shadow-sm transition-all duration-500 group-hover:shadow-md relative">
+                            <Image
+                              src={getOptimizedWixImage(product.mainImage, 600, 600) || ''} 
+                              alt={product.name || 'Corset'}
+                              width={600}
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                            />
+                            <div className="absolute top-2.5 right-2.5 bg-soft-gold text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
+                              Ready to Ship
+                            </div>
+                          </div>
+                          
+                          <div className="flex flex-col">
+                            <div className="min-h-[2.5rem] md:min-h-[2.8rem] flex items-start">
+                              <h3 className="font-heading text-xs sm:text-base text-foreground group-hover:text-soft-gold transition-colors line-clamp-2 leading-tight">
+                                {product.name}
+                              </h3>
+                            </div>
+                            <p className="font-heading text-xs sm:text-sm text-soft-gold font-bold mt-1">
+                              ${product.price?.toFixed(2)}
+                            </p>
+                          </div>
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
 
-                <div className="text-center">
-                  <Link
-                    to="/catalog?collection=ready-to-ship"
-                    className="inline-block font-heading text-xs md:text-sm text-foreground/70 hover:text-soft-gold transition-colors tracking-widest uppercase border-b border-foreground/20 pb-1 hover:border-soft-gold"
-                  >
-                    View All Ready to Ship →
-                  </Link>
-                </div>
-              </>
-            ) : null}
-          </div>
-        </section>
+                  <div className="text-center">
+                    <Link
+                      to="/catalog?collection=ready-to-ship"
+                      className="inline-block font-heading text-xs md:text-sm text-foreground/70 hover:text-soft-gold transition-colors tracking-widest uppercase border-b border-foreground/20 pb-1 hover:border-soft-gold"
+                    >
+                      View All Ready to Ship →
+                    </Link>
+                  </div>
+                </>
+              )}
+            </div>
+          </section>
+        )}
 
-        {/* 2. COLLECTIONS (С акцентным разделителем) */}
+        {/* 2. COLLECTIONS */}
         <section className="py-12 md:py-20 border-t border-foreground/5">
           <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-12">
             <div className="text-center mb-8 md:mb-14">
@@ -312,7 +315,7 @@ export default function HomePage() {
                     <Link to={`/catalog?collection=${collection._id}`} className="group block">
                       <div className="bg-ivory rounded-2xl overflow-hidden mb-3 aspect-square shadow-sm transition-all duration-500 group-hover:shadow-md">
                         <Image
-                          src={collection.image || ''}
+                          src={getOptimizedWixImage(collection.image, 800, 800) || ''}
                           alt={collection.name || 'Collection'}
                           width={800}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
@@ -366,7 +369,7 @@ export default function HomePage() {
                         >
                           {imageUrl ? (
                             <Image
-                              src={imageUrl}
+                              src={getOptimizedWixImage(imageUrl, 600, 600) || ''}
                               alt={review.name || 'Client review'}
                               width={600}
                               className="w-full h-full object-cover select-none pointer-events-none"
