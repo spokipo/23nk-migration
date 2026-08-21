@@ -18,11 +18,13 @@
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
-   <!-- Доставка -->
+  <!-- Доставка -->
+  <url>
     <loc>https://i23nk.com/delivery</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
+  <!-- Контакты -->
   <url>
     <loc>https://i23nk.com/contact</loc>
     <changefreq>monthly</changefreq>
