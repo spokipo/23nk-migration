@@ -3,12 +3,11 @@ import Header from '@/components/Header';
 import { Image } from '@/components/ui/image';
 import { Collections, Products, Reviews } from '@/entities';
 import { BaseCrudService } from '@/integrations';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getOptimizedWixImage } from '@/lib/imageUtils';
 
-// Хелпер для получения фото из отзывов (для нашего Grid Breaker)
 const getReviewImage = (review: any) => {
   const rawImage = review?.reviewImage || review?.ReviewImage || review?.image || review?.photo || review?.src || '';
   return typeof rawImage === 'object' && rawImage !== null ? rawImage.url || rawImage.src || '' : rawImage;
@@ -23,11 +22,31 @@ export default function CatalogPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [visibleCount, setVisibleCount] = useState(12);
 
-  // 1. SEO-ХУК
+  // --- УМНЫЙ СКРОЛЛ И СИНХРОНИЗАЦИЯ ---
+  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const { scrollY } = useScroll();
+
+  // Проверяем мобилку для точной математики пикселей
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = scrollY.getPrevious() || 0;
+    if (latest > previous && latest > 100) {
+      setIsHeaderHidden(true);
+    } else {
+      setIsHeaderHidden(false);
+    }
+  });
+
   useEffect(() => {
     let meta = document.querySelector('meta[name="robots"]');
     let wasCreated = false;
-
     if (!meta) {
       meta = document.createElement('meta');
       meta.setAttribute('name', 'robots');
@@ -35,26 +54,21 @@ export default function CatalogPage() {
       wasCreated = true;
     }
     meta.setAttribute('content', 'index, follow');
-
     return () => {
       if (wasCreated && meta) document.head.removeChild(meta);
     };
   }, []);
 
-  // 2. ХУК ЗАГРУЗКИ ДАННЫХ
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [productsData, collectionsData, reviewsData] = await Promise.all([
           BaseCrudService.getAll<Products>('products', { multiRef: ['Collections'] }),
           BaseCrudService.getAll<Collections>('collections'),
-          BaseCrudService.getAll<Reviews>('reviews') // Грузим отзывы для коллажа
+          BaseCrudService.getAll<Reviews>('reviews')
         ]);
-
         setProducts(productsData.items || []);
         setCollections(collectionsData.items || []);
-
-        // Выбираем случайное фото для Grid Breaker
         if (reviewsData.items && reviewsData.items.length > 0) {
           const randomIndex = Math.floor(Math.random() * reviewsData.items.length);
           setRandomReview(reviewsData.items[randomIndex]);
@@ -65,11 +79,9 @@ export default function CatalogPage() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
-  // 3. ХУК АДРЕСНОЙ СТРОКИ
   useEffect(() => {
     const collectionParam = searchParams.get('collection');
     setActiveFilter(collectionParam || 'all');
@@ -103,34 +115,40 @@ export default function CatalogPage() {
     <div className="min-h-screen bg-background font-paragraph text-foreground selection:bg-soft-gold/20">
       <Header />
 
-      <main className="py-8 md:py-12">
-        <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-20">
+      <main className="pt-2 pb-8 md:py-12">
+        <div className="max-w-[120rem] mx-auto px-4 sm:px-6 md:px-20 relative">
 
+          {/* === ФИЛЬТРЫ: Идеальная синхронизация с хедером === */}
           {!loading && products.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mb-8 md:mb-12"
+              // top-[72px] дает ровно 8px зазора от мобильного хедера (который 64px)
+              // top-[112px] дает 16px зазора от десктопного хедера (который 96px)
+              className="sticky top-[72px] md:top-[112px] z-40 mb-6 md:mb-12 pointer-events-none md:pointer-events-auto"
+              animate={{
+                // Поднимаем пилюли ровно на высоту хедера, когда он прячется
+                y: isHeaderHidden ? (isMobile ? -64 : -96) : 0
+              }}
+              // Время анимации (0.3s) совпадает с хедером пиксель-в-пиксель
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
-              {/* МОБИЛЬНЫЕ "ПИЛЮЛИ" (Плавные, без snap-x) */}
-              <div className="md:hidden flex overflow-x-auto scrollbar-hide gap-2 pb-2 px-4 -mx-4 relative">
+              {/* Мобильная лента (Стеклянная, как хедер) */}
+              <div className="md:hidden flex overflow-x-auto scrollbar-hide gap-2 -mx-4 px-4 pb-2 pointer-events-auto">
                 <button
                   onClick={() => handleFilterChange('all')}
-                  className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border ${
+                  className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border backdrop-blur-md ${
                     activeFilter === 'all'
-                      ? 'bg-foreground text-background border-foreground shadow-md'
-                      : 'bg-ivory text-foreground/70 border-foreground/15 hover:border-foreground/30'
+                      ? 'bg-foreground text-background border-transparent shadow-md'
+                      : 'bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95'
                   }`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => handleFilterChange('ready-to-ship')}
-                  className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border ${
+                  className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border backdrop-blur-md ${
                     activeFilter === 'ready-to-ship'
-                      ? 'bg-foreground text-background border-foreground shadow-md'
-                      : 'bg-ivory text-foreground/70 border-foreground/15 hover:border-foreground/30'
+                      ? 'bg-foreground text-background border-transparent shadow-md'
+                      : 'bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95'
                   }`}
                 >
                   Ready to Ship
@@ -139,21 +157,20 @@ export default function CatalogPage() {
                   <button
                     key={collection._id}
                     onClick={() => handleFilterChange(collection._id)}
-                    className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border ${
+                    className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border backdrop-blur-md ${
                       activeFilter === collection._id
-                        ? 'bg-foreground text-background border-foreground shadow-md'
-                        : 'bg-ivory text-foreground/70 border-foreground/15 hover:border-foreground/30'
+                        ? 'bg-foreground text-background border-transparent shadow-md'
+                        : 'bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95'
                     }`}
                   >
                     {collection.name}
                   </button>
                 ))}
-                {/* Невидимая распорка, чтобы крайняя пилюля не липла к экрану */}
                 <div className="w-px shrink-0"></div>
               </div>
 
-              {/* ДЕСКТОПНАЯ ПАНЕЛЬ */}
-              <div className="hidden md:flex justify-center items-center">
+              {/* Десктопная лента */}
+              <div className="hidden md:flex justify-center items-center pointer-events-auto">
                 <div className="flex gap-4 flex-nowrap">
                   <button
                     onClick={() => handleFilterChange('all')}
@@ -165,7 +182,6 @@ export default function CatalogPage() {
                   >
                     All
                   </button>
-
                   <button
                     onClick={() => handleFilterChange('ready-to-ship')}
                     className={`px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${
@@ -176,7 +192,6 @@ export default function CatalogPage() {
                   >
                     Ready to Ship
                   </button>
-
                   {collections.map(collection => (
                     <button
                       key={collection._id}
@@ -195,9 +210,9 @@ export default function CatalogPage() {
             </motion.div>
           )}
 
-          {/* Grid / Skeletons / Empty State */}
+          {/* Grid */}
           {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:gap-x-8 md:gap-y-16">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:gap-x-8 md:gap-y-16 mt-4">
               {[...Array(12)].map((_, i) => (
                 <div key={i} className="flex flex-col animate-pulse">
                   <div className="bg-foreground/5 rounded-xl aspect-[3/4] mb-2.5 w-full"></div>
@@ -231,8 +246,6 @@ export default function CatalogPage() {
                   return (
                     <React.Fragment key={product._id}>
                       
-                      {/* ========================================================= */}
-                      {/* EDITORIAL BLOCK START */}
                       {index === 4 && randomReview && getReviewImage(randomReview) && (
                         <motion.div
                           initial={{ opacity: 0, y: 15 }}
@@ -260,15 +273,11 @@ export default function CatalogPage() {
                             </div>
                           </div>
 
-                          {/* НЕВИДИМАЯ РАСПОРКА: Теперь только "цена". 
-                              Картинка растянется и займет место названия! */}
                           <div className="invisible pointer-events-none hidden lg:flex items-center gap-2 mt-1">
                             <p className="font-heading text-xs sm:text-sm font-bold">Spacer</p>
                           </div>
                         </motion.div>
                       )}
-                      {/* EDITORIAL BLOCK END */}
-                      {/* ========================================================= */}
 
                       <motion.div
                         initial={{ opacity: 0, y: 15 }}
@@ -284,31 +293,22 @@ export default function CatalogPage() {
                               className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${isSold || isReserved ? 'opacity-80' : ''}`}
                             />
 
-                            {/* КОНТЕЙНЕР ДЛЯ ПЛАШЕК */}
                             <div className="absolute top-2.5 right-2.5 flex flex-col gap-1.5 items-end z-10">
-                              
-                              {/* ПЛАШКА: SOLD */}
                               {isSold && (
                                 <div className="bg-foreground text-background px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
                                   Sold
                                 </div>
                               )}
-                              
-                              {/* ПЛАШКА: RESERVED */}
                               {isReserved && !isSold && (
                                 <div className="bg-foreground/50 backdrop-blur-sm text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
                                   Reserved
                                 </div>
                               )}
-
-                              {/* ПЛАШКА: READY TO SHIP */}
                               {!isReserved && !isSold && product.inStock === true && (
                                 <div className="bg-soft-gold text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
                                   Ready to Ship
                                 </div>
                               )}
-
-                              {/* ПЛАШКА: SALE */}
                               {isOnSale && (
                                 <div className="bg-red-800/90 text-ivory px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-heading font-semibold shadow-sm">
                                   Sale
@@ -324,7 +324,6 @@ export default function CatalogPage() {
                               </h3>
                             </div>
                             
-                            {/* ЦЕНЫ (Новая и старая перечеркнутая) */}
                             <div className="flex items-center gap-2 mt-1">
                               {isOnSale && oldPrice ? (
                                 <>
@@ -344,7 +343,6 @@ export default function CatalogPage() {
                           </div>
                         </Link>
                       </motion.div>
-
                     </React.Fragment>
                   );
                 })}

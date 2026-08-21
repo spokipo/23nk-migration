@@ -19,18 +19,16 @@ import { BaseCrudService } from '@/integrations';
 import { sendOrderNotification } from '@/integrations/notifications';
 import { Country } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2, X, ChevronLeft } from 'lucide-react'; 
 import React, { useEffect, useState, useRef } from 'react';
-import { getOptimizedWixImage } from '@/lib/imageUtils'; // Импорт нашей утилиты
+import { getOptimizedWixImage } from '@/lib/imageUtils';
 
-// Полный список стран доставки Nova Poshta Global (ISO Alpha-2 коды)
 const NOVA_POSHTA_COUNTRIES = [
   'AT', 'UA', 'AL', 'AD', 'BE', 'BG', 'BA', 'VA', 'GB', 'GR', 'GI', 'DK', 'EE', 'IE', 'IS', 'ES', 'IT', 'CY', 'LV', 'LT', 'LI', 'LU', 'MT', 'MD', 'MC', 'NL', 'DE', 'NO', 'MK', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'TR', 'CZ', 'ME', 'HU', 'FI', 'FR', 'HR', 'CH', 'SE',
   'US', 'CA', 'CN', 'HK',
   'AU', 'AZ', 'DZ', 'AS', 'AO', 'AI', 'AG', 'AR', 'AW', 'AF', 'BS', 'BD', 'BB', 'BH', 'BZ', 'BJ', 'BM', 'BO', 'BQ', 'BW', 'BR', 'VG', 'BN', 'BF', 'BI', 'BT', 'VN', 'VU', 'VI', 'VE', 'AM', 'GA', 'HT', 'GM', 'GH', 'GN', 'GW', 'HN', 'GE', 'GY', 'GP', 'GT', 'GD', 'GL', 'GU', 'DJ', 'DM', 'DO', 'EC', 'ER', 'SZ', 'ET', 'EG', 'ZM', 'ZW', 'IL', 'IN', 'ID', 'IQ', 'JO', 'CV', 'KZ', 'KY', 'KH', 'CM', 'QA', 'KE', 'NE', 'KG', 'CO', 'KM', 'CG', 'CR', 'CI', 'KW', 'CK', 'CW', 'LA', 'LS', 'LR', 'LB', 'MU', 'MR', 'MG', 'YT', 'MO', 'MW', 'MY', 'ML', 'MV', 'MA', 'MQ', 'MH', 'MX', 'MZ', 'MN', 'NA', 'NP', 'NG', 'NI', 'NZ', 'NC', 'AE', 'OM', 'PK', 'PW', 'PS', 'PA', 'PG', 'PY', 'PE', 'ZA', 'MP', 'PR', 'KR', 'RE', 'RW', 'SV', 'WS', 'SA', 'SC', 'BL', 'SN', 'MF', 'SX', 'VC', 'KN', 'LC', 'SG', 'SB', 'TL', 'SL', 'TH', 'PF', 'TW', 'TZ', 'TC', 'TG', 'TO', 'TT', 'TN', 'UG', 'UZ', 'UY', 'FO', 'FJ', 'PH', 'GF', 'TD', 'CL', 'LK', 'JM', 'FM', 'JP'
 ];
 
-// Упрощенный хелпер: только достает сырой URL. Всю магию сжатия делает getOptimizedWixImage.
 const getImageUrl = (review: any) => {
   const rawImage =
     review?.reviewImage ||
@@ -46,7 +44,6 @@ const getImageUrl = (review: any) => {
   return rawImage;
 };
 
-// Отдельный компонент карточки с контролем загрузки изображения
 interface GalleryCardProps {
   review: Reviews;
   index: number;
@@ -57,7 +54,6 @@ interface GalleryCardProps {
 function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCardProps) {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   
-  // Для сетки запрашиваем оптимальный вариант
   const rawUrl = getImageUrl(review);
   const imageUrl = getOptimizedWixImage(rawUrl, 1200, 1200); 
 
@@ -67,15 +63,13 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
       animate={{ opacity: 1, y: 0 }}
       transition={{
         duration: 0.4,
-        delay: (index % 12) * 0.04, // Адаптировано под пагинацию
+        delay: (index % 12) * 0.04,
       }}
       onClick={() => onOpenReview(review)}
       className="group relative flex cursor-pointer flex-col"
     >
-      {/* Убрали нижний марджин, так как текста под фото больше нет */}
       <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-ivory shadow-sm transition-all duration-500 group-hover:shadow-md w-full">
         
-        {/* Индивидуальный скелетон карточки до завершения декодирования */}
         {!isImageLoaded && (
           <div className="absolute inset-0 bg-foreground/5 animate-pulse z-0" />
         )}
@@ -103,7 +97,6 @@ function GalleryCard({ review, index, loadingReviewId, onOpenReview }: GalleryCa
           </span>
         </div>
       </div>
-      {/* Блок с текстом под карточкой полностью удален для чистой галереи */}
     </motion.div>
   );
 }
@@ -120,7 +113,6 @@ export default function ReviewsPage() {
       wasCreated = true;
     }
 
-    // Принудительно РАЗРЕШАЕМ индексацию главной и каталога
     meta.setAttribute('content', 'index, follow');
 
     return () => {
@@ -129,14 +121,13 @@ export default function ReviewsPage() {
       }
     };
   }, []);
+  
   const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedReview, setSelectedReview] = useState<Reviews | null>(null);
   
-  // Стейт для пагинации
   const [visibleCount, setVisibleCount] = useState(12);
 
-  // Состояния загрузки
   const [loadingReviewId, setLoadingReviewId] = useState<string | null>(null);
   const [isZoomPreparing, setIsZoomPreparing] = useState(false);
   
@@ -144,18 +135,14 @@ export default function ReviewsPage() {
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Стейт для страны
   const [selectedCountryCode, setSelectedCountryCode] = useState('');
 
-  // Fullscreen Zoom Lightbox
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
 
-  // Стейты для десктопного зума
   const modalImgRef = useRef<HTMLDivElement>(null);
   const [modalZoomPos, setModalZoomPos] = useState({ x: 0, y: 0 });
   const [showModalZoom, setShowModalZoom] = useState(false);
 
-  // Стейты для мобильного Pinch-to-Zoom
   const [touchScale, setTouchScale] = useState(1);
   const [touchPos, setTouchPos] = useState({ x: 0, y: 0 });
   const touchState = useRef({
@@ -167,7 +154,6 @@ export default function ReviewsPage() {
     isPanning: false,
   });
 
-  // Responsive Animation Trigger
   const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
 
@@ -200,7 +186,6 @@ export default function ReviewsPage() {
         if (!isMounted) return;
         setReviews(items);
 
-        // Предзагружаем верхние 6 фото (сразу в оптимизированном размере 1200x1200)
         if (items.length > 0) {
           const topImages = items.slice(0, 6).map(item => {
             const rawUrl = getImageUrl(item);
@@ -285,7 +270,7 @@ export default function ReviewsPage() {
 
   const handleOpenReview = (review: Reviews) => {
     const rawSrc = getImageUrl(review);
-    const currentSrc = getOptimizedWixImage(rawSrc, 1200, 1200); // Грузим 1200px для модалки превью
+    const currentSrc = getOptimizedWixImage(rawSrc, 1200, 1200);
     if (!currentSrc) return;
 
     setLoadingReviewId(review._id);
@@ -325,7 +310,7 @@ export default function ReviewsPage() {
 
   const handleOpenZoom = () => {
     const rawSrc = selectedReview ? getImageUrl(selectedReview) : '';
-    const currentSrc = getOptimizedWixImage(rawSrc, 2400, 2400); // Максимальное качество для фуллскрина
+    const currentSrc = getOptimizedWixImage(rawSrc, 2400, 2400); 
     if (!currentSrc) return;
 
     setIsZoomPreparing(true);
@@ -444,15 +429,17 @@ export default function ReviewsPage() {
 
   const modalAnimationVariants: any = isMobile
     ? {
-        initial: { y: '100%', opacity: 1 },
+        initial: { opacity: 0, scale: 0.95, y: 15 },
         animate: { 
-          y: 0, 
-          opacity: 1,
+          opacity: 1, 
+          scale: 1, 
+          y: 0,
           transition: { type: 'tween', duration: 0.35, ease: [0.16, 1, 0.3, 1] }
         },
         exit: { 
-          y: '100%', 
-          opacity: 1,
+          opacity: 0, 
+          scale: 0.95, 
+          y: 15,
           transition: { type: 'tween', duration: 0.3, ease: [0.16, 1, 0.3, 1] }
         },
       }
@@ -524,7 +511,6 @@ export default function ReviewsPage() {
                 ))}
               </div>
 
-              {/* Кнопка Load More */}
               {visibleCount < reviews.length && (
                 <div className="mt-12 md:mt-16 flex justify-center">
                   <button
@@ -549,7 +535,8 @@ export default function ReviewsPage() {
       {/* --- PREVIEW MODAL --- */}
       <AnimatePresence>
         {selectedReview && !isFormOpen && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-contain">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 font-paragraph text-foreground overscroll-contain">
+            
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -564,11 +551,17 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex max-h-[85dvh] sm:max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-2xl sm:rounded-2xl"
+              className="relative z-10 flex h-[100dvh] w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-2xl sm:rounded-2xl sm:border sm:border-foreground/15 rounded-none"
             >
-              <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
-                <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
-              </div>
+              
+              {/* ПЛАВАЮЩАЯ КНОПКА BACK ДЛЯ МОБИЛОК (Прямо поверх фото) */}
+              <button
+                onClick={handleCloseReview}
+                className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-full px-5 py-2.5 transition-all border backdrop-blur-md bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95 sm:hidden"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="font-heading text-[11px] sm:text-xs uppercase tracking-widest text-foreground">Back</span>
+              </button>
 
               <button
                 onClick={handleCloseReview}
@@ -578,7 +571,7 @@ export default function ReviewsPage() {
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="modal-scrollbar flex w-full flex-1 flex-col overflow-y-auto sm:flex-row sm:overflow-hidden">
+              <div className="modal-scrollbar flex w-full flex-1 flex-col overflow-y-auto sm:flex-row sm:overflow-hidden pb-8 sm:pb-0">
                 <div
                   className="group relative aspect-[3/4] w-full shrink-0 cursor-zoom-in overflow-hidden bg-ivory/50 sm:w-1/2"
                   onClick={handleOpenZoom}
@@ -619,13 +612,6 @@ export default function ReviewsPage() {
                     >
                       Custom Order
                     </Button>
-                    <button
-                      type="button"
-                      onClick={handleCloseReview}
-                      className="w-full py-2 text-center font-heading text-xs text-foreground/50 hover:text-foreground transition-colors"
-                    >
-                      Close
-                    </button>
                   </div>
                 </div>
               </div>
@@ -637,7 +623,8 @@ export default function ReviewsPage() {
       {/* --- FORM MODAL --- */}
       <AnimatePresence>
         {isFormOpen && selectedReview && (
-          <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4 font-paragraph text-foreground overscroll-contain">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 font-paragraph text-foreground overscroll-contain">
+            
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -652,11 +639,17 @@ export default function ReviewsPage() {
               initial="initial"
               animate="animate"
               exit="exit"
-              className="relative z-10 flex max-h-[85dvh] sm:max-h-[85vh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-w-md sm:rounded-2xl"
+              className="relative z-10 flex h-[100dvh] w-full flex-col overflow-hidden bg-background shadow-2xl sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-foreground/15 rounded-none"
             >
-              <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
-                <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
-              </div>
+              
+              {/* ПЛАВАЮЩАЯ КНОПКА BACK ДЛЯ ФОРМЫ */}
+              <button
+                onClick={handleCloseForm}
+                className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-full px-5 py-2.5 transition-all border backdrop-blur-md bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95 sm:hidden"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="font-heading text-[11px] sm:text-xs uppercase tracking-widest text-foreground">Back</span>
+              </button>
 
               <button
                 onClick={handleCloseForm}
@@ -666,7 +659,8 @@ export default function ReviewsPage() {
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="modal-scrollbar flex-1 overflow-y-auto p-5 sm:p-7 overscroll-contain">
+              {/* ДОБАВЛЕН pt-16 на мобилках, чтобы форма не залезала под кнопку */}
+              <div className="modal-scrollbar flex-1 overflow-y-auto p-5 pt-16 sm:p-7 sm:pt-7 overscroll-contain pb-12 sm:pb-7">
                 {isSubmittedSuccess ? (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -870,13 +864,6 @@ export default function ReviewsPage() {
                         >
                           {isSubmitting ? 'Sending...' : 'Send Request'}
                         </Button>
-                        <button
-                          type="button"
-                          onClick={handleCloseForm}
-                          className="w-full py-2 text-center font-heading text-xs text-foreground/50 hover:text-foreground transition-colors"
-                        >
-                          Close
-                        </button>
                       </div>
                     </form>
                   </>
