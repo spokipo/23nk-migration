@@ -290,8 +290,8 @@ export default function OrderModal({
             animate="animate"
             exit="exit"
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            // Убрали стекло (bg-background/85 backdrop-blur-md) -> сделали сплошной bg-background
-            className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
+            // ИСПРАВИЛ ГРАНИЦУ: border-t sm:border убирает нижнюю полосу на мобилке!
+            className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border-t sm:border border-foreground/10 bg-background shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div 

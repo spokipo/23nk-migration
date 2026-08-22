@@ -119,7 +119,7 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
       document.documentElement.style.backgroundColor = computedBgColor;
       metaThemeColor.setAttribute('content', computedBgColor);
 
-      // 2. МЯГКИЙ ЛОК СКРОЛЛА (Без position: fixed)
+      // 2. МЯГКИЙ ЛОК СКРОЛЛА
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overscrollBehavior = 'none'; 
       
@@ -349,7 +349,6 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
               exit="exit"
               className="absolute top-0 bottom-0 left-0 right-0 z-10 flex flex-col overflow-hidden bg-background sm:relative sm:inset-auto sm:max-h-[90%] sm:w-full sm:max-w-2xl sm:rounded-2xl sm:border sm:border-foreground/15 sm:shadow-2xl"
             >
-              {/* === ЧИСТАЯ КРУГЛАЯ КНОПКА "НАЗАД" ДЛЯ МОБИЛОК === */}
               <button
                 onClick={handleCloseReview}
                 className="absolute left-4 top-4 z-30 flex items-center justify-center rounded-full p-2.5 transition-all border bg-background text-foreground/80 border-foreground/10 shadow-sm hover:bg-muted sm:hidden"
@@ -374,8 +373,9 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
                   className="group relative aspect-[3/4] w-full shrink-0 cursor-zoom-in overflow-hidden bg-ivory/50 sm:w-1/2"
                   onClick={handleOpenZoom}
                 >
+                  {/* ТЕМНЫЙ СТЕКЛЯННЫЙ СПИННЕР ВЕРНУЛСЯ! */}
                   {isZoomPreparing && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/50 transition-opacity">
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/10 backdrop-blur-sm transition-opacity">
                       <LoadingSpinner />
                     </div>
                   )}
@@ -441,8 +441,8 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
               animate="animate"
               exit="exit"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-              // Сплошной фон шторки
-              className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
+              // ИСПРАВИЛ ГРАНИЦУ: border-t sm:border убирает нижнюю полосу на мобилке!
+              className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border-t sm:border border-foreground/10 bg-background shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div 
