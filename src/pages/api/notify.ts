@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { title, productName, price, formData } = payload;
 
     const lines = [
-      `* <b>${title || 'New Notification'}</b>`,
+      `<b>${title || 'New Notification'}</b>`,
       productName ? `<b>Product:</b> ${productName}` : '',
       price ? `<b>Price:</b> $${typeof price === 'number' ? price.toFixed(2) : price}` : '',
       `----------------------------------`,

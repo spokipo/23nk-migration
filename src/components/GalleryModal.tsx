@@ -64,6 +64,9 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCountryCode, setSelectedCountryCode] = useState('');
 
+  // Реальные размеры видимой области (учитывают клавиатуру на iOS Safari)
+  const [viewport, setViewport] = useState<{ height: number; offsetTop: number } | null>(null);
+
   const [isFullscreenZoom, setIsFullscreenZoom] = useState(false);
   const [isZoomPreparing, setIsZoomPreparing] = useState(false);
   const modalImgRef = useRef<HTMLDivElement>(null);
@@ -139,6 +142,30 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
       }
     };
   }, [selectedReview, isFullscreenZoom]);
+
+  // ФИКС ДЫРЫ НАД КЛАВИАТУРОЙ (visualViewport)
+  useEffect(() => {
+    if (!isFormOpen) {
+      setViewport(null);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateViewport = () => {
+      setViewport({ height: vv.height, offsetTop: vv.offsetTop });
+    };
+
+    updateViewport();
+    vv.addEventListener('resize', updateViewport);
+    vv.addEventListener('scroll', updateViewport);
+
+    return () => {
+      vv.removeEventListener('resize', updateViewport);
+      vv.removeEventListener('scroll', updateViewport);
+    };
+  }, [isFormOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -422,7 +449,15 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
       <AnimatePresence>
         {isFormOpen && selectedReview && (
           <div 
-            style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100 }} 
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              height: viewport ? `${viewport.height}px` : '100dvh',
+              transform: viewport ? `translateY(${viewport.offsetTop}px)` : undefined,
+              zIndex: 100,
+            }} 
             className="flex flex-col justify-end sm:items-center sm:justify-center sm:p-4 font-paragraph text-foreground"
           >
             <motion.div

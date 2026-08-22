@@ -56,6 +56,9 @@ export default function OrderModal({
   const [selectedCountryCode, setSelectedCountryCode] = useState('');
   const [selectedStateCode, setSelectedStateCode] = useState('');
 
+  // Реальные размеры видимой области (учитывают клавиатуру на iOS Safari)
+  const [viewport, setViewport] = useState<{ height: number; offsetTop: number } | null>(null);
+
   const [formData, setFormData] = useState({
     fullName: '',
     country: '',
@@ -132,6 +135,32 @@ export default function OrderModal({
         metaThemeColor.setAttribute('content', originalThemeColor);
       }
       document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  // ФИКС ДЫРЫ НАД КЛАВИАТУРОЙ: iOS Safari не пересчитывает bottom:0
+  // у fixed-контейнера при открытии клавиатуры. Меряем visualViewport
+  // напрямую и явно задаём height + смещение вместо top/bottom.
+  useEffect(() => {
+    if (!isOpen) {
+      setViewport(null);
+      return;
+    }
+
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const updateViewport = () => {
+      setViewport({ height: vv.height, offsetTop: vv.offsetTop });
+    };
+
+    updateViewport();
+    vv.addEventListener('resize', updateViewport);
+    vv.addEventListener('scroll', updateViewport);
+
+    return () => {
+      vv.removeEventListener('resize', updateViewport);
+      vv.removeEventListener('scroll', updateViewport);
     };
   }, [isOpen]);
 
@@ -269,7 +298,15 @@ export default function OrderModal({
     <AnimatePresence>
       {isOpen && (
         <div 
-          style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100 }} 
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            height: viewport ? `${viewport.height}px` : '100dvh',
+            transform: viewport ? `translateY(${viewport.offsetTop}px)` : undefined,
+            zIndex: 100,
+          }} 
           className="flex flex-col justify-end sm:items-center sm:justify-center sm:p-4 font-paragraph text-foreground"
         >
           <motion.div
