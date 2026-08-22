@@ -16,11 +16,11 @@ export default function Header() {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
-  // Стейты для умного скролла
+  // Стейт для прячущегося хедера
   const [isHidden, setIsHidden] = useState(false);
   const { scrollY } = useScroll();
 
-  // Стейты для выпадающего меню коллекций
+  // === СТЕЙТЫ МЕНЮ ===
   const [collections, setCollections] = useState<Collections[]>([]);
   const [isDesktopDropdownOpen, setIsDesktopDropdownOpen] = useState(false);
   const [isMobileCatalogOpen, setIsMobileCatalogOpen] = useState(false);
@@ -33,14 +33,14 @@ export default function Header() {
     { path: '/contact', label: 'Contact' },
   ];
 
-  // Подтягиваем коллекции
+  // Загрузка коллекций
   useEffect(() => {
     const fetchCollections = async () => {
       try {
         const data = await BaseCrudService.getAll<Collections>('collections');
         setCollections(data.items || []);
       } catch (err) {
-        console.error('Ошибка при загрузке коллекций в хедере:', err);
+        console.error('Ошибка при загрузке коллекций:', err);
       }
     };
     fetchCollections();
@@ -50,7 +50,7 @@ export default function Header() {
     const previous = scrollY.getPrevious() || 0;
     if (latest > previous && latest > 100) {
       setIsHidden(true);
-      setIsDesktopDropdownOpen(false);
+      setIsDesktopDropdownOpen(false); 
     } else {
       setIsHidden(false);
     }
@@ -61,6 +61,7 @@ export default function Header() {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
+      setIsMobileCatalogOpen(false); 
     }
     return () => {
       document.body.style.overflow = '';
@@ -70,11 +71,12 @@ export default function Header() {
   useEffect(() => {
     setIsMenuOpen(false);
     setIsDesktopDropdownOpen(false);
-  }, [location.pathname, location.search]);
+  }, [location.pathname]);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
+  // Проверка активности каталога
   const isCatalogActive = location.pathname.includes('/catalog');
 
   return (
@@ -85,7 +87,7 @@ export default function Header() {
       }}
       animate={isHidden ? "hidden" : "visible"}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
-      className="sticky top-0 z-50 bg-background/85 backdrop-blur-md md:bg-background md:backdrop-blur-none border-b border-foreground/10"
+      className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b border-foreground/10"
     >
       <div className="max-w-[120rem] mx-auto px-6 md:px-20">
         <div className="flex items-center justify-between h-16 md:h-24">
@@ -96,78 +98,69 @@ export default function Header() {
             I23NK
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* === ДЕСКТОП === */}
           <nav className="hidden md:flex items-center gap-10">
             {navLinks.map((link) => {
-              if (link.path === '/catalog') {
-                return (
-                  <div 
-                    key="catalog-desktop"
-                    className="relative py-2"
-                    onMouseEnter={() => setIsDesktopDropdownOpen(true)}
-                    onMouseLeave={() => setIsDesktopDropdownOpen(false)}
+              const isCatalog = link.path === '/catalog';
+              const isActive = isCatalog ? isCatalogActive : location.pathname === link.path;
+              
+              // Показываем дропдаун ТОЛЬКО если мы НЕ в каталоге
+              const canShowDropdown = isCatalog && !isCatalogActive;
+              
+              return (
+                <div 
+                  key={link.path}
+                  className="relative flex items-center justify-center"
+                  onMouseEnter={canShowDropdown ? () => setIsDesktopDropdownOpen(true) : undefined}
+                  onMouseLeave={canShowDropdown ? () => setIsDesktopDropdownOpen(false) : undefined}
+                >
+                  <Link
+                    to={link.path}
+                    className={`relative font-heading text-xs uppercase tracking-widest py-2 transition-colors duration-300 ${
+                      isActive ? 'text-foreground font-semibold' : 'text-foreground/60 hover:text-foreground'
+                    }`}
                   >
-                    <button
-                      className={`flex items-center gap-1.5 relative font-heading text-xs uppercase tracking-widest transition-colors duration-300 ${
-                        isCatalogActive ? 'text-foreground font-semibold' : 'text-foreground/60 hover:text-foreground'
-                      }`}
-                    >
-                      {link.label}
-                      {isCatalogActive && (
-                        <motion.div
-                          layoutId="activeNavIndicator"
-                          className="absolute left-0 right-0 -bottom-3 h-[2px] bg-soft-gold"
-                          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        />
-                      )}
-                    </button>
+                    {link.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeNavIndicator"
+                        className="absolute left-0 right-0 -bottom-1 h-[2px] bg-soft-gold"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </Link>
 
+                  {/* === ВЫПАДАЮЩЕЕ МЕНЮ КАТАЛОГА === */}
+                  {canShowDropdown && (
                     <AnimatePresence>
                       {isDesktopDropdownOpen && (
                         <motion.div
-                          initial={{ opacity: 0, y: 15 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 15 }}
+                          initial={{ opacity: 0, y: 15, x: "-50%" }}
+                          animate={{ opacity: 1, y: 0, x: "-50%" }}
+                          exit={{ opacity: 0, y: 15, x: "-50%" }}
                           transition={{ duration: 0.2, ease: "easeOut" }}
-                          className="absolute top-[100%] mt-4 -left-6 w-56 bg-background/95 backdrop-blur-md border border-foreground/10 rounded-2xl shadow-xl py-3 flex flex-col z-50 overflow-hidden"
+                          className="absolute top-full left-1/2 pt-4 w-56 z-50"
                         >
-                          <Link to="/catalog" className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/70 hover:text-foreground hover:bg-foreground/5 hover:pl-7 transition-all">
-                            All Products
-                          </Link>
-                          <Link to="/catalog?collection=ready-to-ship" className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/70 hover:text-foreground hover:bg-foreground/5 hover:pl-7 transition-all">
-                            Ready to Ship
-                          </Link>
-                          {collections.length > 0 && <div className="h-px bg-foreground/10 my-2 mx-6" />}
-                          {collections.map(col => (
-                            <Link key={col._id} to={`/catalog?collection=${getCollectionSlug(col)}`} className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/70 hover:text-foreground hover:bg-foreground/5 hover:pl-7 transition-all">
-                              {col.name}
+                          {/* ИСПРАВЛЕНИЕ: bg-background (сплошной цвет без стекла) и глубокая тень */}
+                          <div className="bg-background border border-foreground/10 rounded-2xl shadow-2xl py-3 flex flex-col overflow-hidden">
+                            <Link to="/catalog" className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/80 hover:text-foreground hover:bg-foreground/5 transition-colors">
+                              All Products
                             </Link>
-                          ))}
+                            <Link to="/catalog?collection=ready-to-ship" className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/80 hover:text-foreground hover:bg-foreground/5 transition-colors">
+                              Ready to Ship
+                            </Link>
+                            {collections.length > 0 && <div className="h-px bg-foreground/10 my-1 mx-6" />}
+                            {collections.map(col => (
+                              <Link key={col._id} to={`/catalog?collection=${getCollectionSlug(col)}`} className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/80 hover:text-foreground hover:bg-foreground/5 transition-colors">
+                                {col.name}
+                              </Link>
+                            ))}
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
-                );
-              }
-
-              const isActive = location.pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className={`relative font-heading text-xs uppercase tracking-widest py-2 transition-colors duration-300 ${
-                    isActive ? 'text-foreground font-semibold' : 'text-foreground/60 hover:text-foreground'
-                  }`}
-                >
-                  {link.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNavIndicator"
-                      className="absolute left-0 right-0 -bottom-3 h-[2px] bg-soft-gold"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
                   )}
-                </Link>
+                </div>
               );
             })}
           </nav>
@@ -183,7 +176,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* === МОБИЛКА === */}
       <AnimatePresence>
         {isMenuOpen && (
           <motion.div
@@ -191,47 +184,51 @@ export default function Header() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="absolute top-16 left-0 right-0 h-[calc(100dvh-4rem)] bg-background border-t border-foreground/10 md:hidden flex flex-col overflow-y-auto"
+            className="absolute top-16 left-0 right-0 h-[calc(100dvh-4rem)] bg-background border-t border-foreground/10 md:hidden flex flex-col"
           >
-            <nav className="flex flex-col px-6 py-8 space-y-2 flex-1">
-              {navLinks.map((link, index) => {
+            <nav className="flex flex-col px-6 py-8 space-y-2 flex-1 overflow-y-auto">
+              {navLinks.map((link) => {
+                const isCatalog = link.path === '/catalog';
+                const isActive = isCatalog 
+                  ? location.pathname.includes('/catalog') 
+                  : location.pathname === link.path;
                 
-                // ОСОБЕННЫЙ РЕНДЕР ДЛЯ КАТАЛОГА (МОБИЛКА)
-                if (link.path === '/catalog') {
+                if (isCatalog) {
                   return (
                     <motion.div 
-                      key="catalog-mobile"
+                      key={link.path}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, delay: 0.05 + (index * 0.05) }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
                       className="flex flex-col"
                     >
-                      <button 
+                      <button
                         onClick={() => setIsMobileCatalogOpen(!isMobileCatalogOpen)}
-                        className={`w-full text-left font-heading text-lg sm:text-xl uppercase tracking-widest py-4 px-4 rounded-xl transition-all ${
-                          isCatalogActive ? 'bg-soft-gold/10 text-soft-gold font-semibold translate-x-2' : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
+                        className={`text-left block font-heading text-lg sm:text-xl uppercase tracking-widest py-4 px-4 rounded-xl transition-all ${
+                          isActive
+                            ? 'bg-soft-gold/10 text-soft-gold font-semibold translate-x-2'
+                            : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
                         }`}
                       >
                         {link.label}
                       </button>
 
-                      {/* Плавно выезжающее подменю БЕЗ ПОЛОСОК */}
                       <AnimatePresence>
                         {isMobileCatalogOpen && (
                           <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden flex flex-col gap-1.5 pl-6 mt-1 mb-2"
+                            className="overflow-hidden flex flex-col pl-8 mb-2"
                           >
-                            <Link to="/catalog" onClick={closeMenu} className="block py-2.5 font-heading text-[13px] uppercase tracking-widest text-foreground/50 hover:text-foreground">
+                            <Link to="/catalog" onClick={closeMenu} className="block py-3 font-heading text-[13px] uppercase tracking-widest text-foreground/60 hover:text-foreground">
                               All Products
                             </Link>
-                            <Link to="/catalog?collection=ready-to-ship" onClick={closeMenu} className="block py-2.5 font-heading text-[13px] uppercase tracking-widest text-foreground/50 hover:text-foreground">
+                            <Link to="/catalog?collection=ready-to-ship" onClick={closeMenu} className="block py-3 font-heading text-[13px] uppercase tracking-widest text-foreground/60 hover:text-foreground">
                               Ready to Ship
                             </Link>
                             {collections.map(col => (
-                              <Link key={col._id} to={`/catalog?collection=${getCollectionSlug(col)}`} onClick={closeMenu} className="block py-2.5 font-heading text-[13px] uppercase tracking-widest text-foreground/50 hover:text-foreground">
+                              <Link key={col._id} to={`/catalog?collection=${getCollectionSlug(col)}`} onClick={closeMenu} className="block py-3 font-heading text-[13px] uppercase tracking-widest text-foreground/60 hover:text-foreground">
                                 {col.name}
                               </Link>
                             ))}
@@ -242,20 +239,20 @@ export default function Header() {
                   );
                 }
 
-                // СТАНДАРТНЫЕ ССЫЛКИ МОБИЛКИ
-                const isActive = location.pathname === link.path;
                 return (
                   <motion.div 
                     key={link.path}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.05 + (index * 0.05) }}
+                    transition={{ duration: 0.3, delay: 0.1 }}
                   >
                     <Link
                       to={link.path}
                       onClick={closeMenu}
                       className={`block font-heading text-lg sm:text-xl uppercase tracking-widest py-4 px-4 rounded-xl transition-all ${
-                        isActive ? 'bg-soft-gold/10 text-soft-gold font-semibold translate-x-2' : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
+                        isActive
+                          ? 'bg-soft-gold/10 text-soft-gold font-semibold translate-x-2'
+                          : 'text-foreground/80 hover:bg-foreground/5 hover:text-foreground'
                       }`}
                     >
                       {link.label}
