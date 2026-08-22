@@ -62,6 +62,7 @@ const router = createBrowserRouter([
           pageIdentifier: 'gallery',
         },
       },
+      
       {
         path: "review/:id",
         element: <ReviewDetailPage />,

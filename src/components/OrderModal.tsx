@@ -17,7 +17,7 @@ import { sendOrderNotification } from '@/integrations/notifications';
 import { Country, State, City } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const NOVA_POSHTA_COUNTRIES = [
@@ -47,7 +47,6 @@ export default function OrderModal({
   modalMode,
 }: OrderModalProps) {
   const { toast } = useToast();
-  const scrollPositionRef = useRef(0);
 
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -87,24 +86,33 @@ export default function OrderModal({
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // Железобетонный лок скролла
+  // СОВРЕМЕННЫЙ ЛОК СКРОЛЛА (БЕЗ СДВИГА СТРАНИЦЫ) + ФИКС SAFE AREA
   useEffect(() => {
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    let originalHtmlBg = '';
+    let originalThemeColor = '';
+
     if (isOpen) {
-      scrollPositionRef.current = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollPositionRef.current}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.width = '100%';
-      document.documentElement.style.overflow = 'hidden';
+      // 1. Фикс для Safari: синхронизируем цвета, чтобы убрать нижний шов
+      originalHtmlBg = document.documentElement.style.backgroundColor;
+      if (metaThemeColor) {
+        originalThemeColor = metaThemeColor.getAttribute('content') || '';
+      } else {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      
+      const computedBgColor = getComputedStyle(document.body).backgroundColor;
+      document.documentElement.style.backgroundColor = computedBgColor;
+      metaThemeColor.setAttribute('content', computedBgColor);
+
+      // 2. МЯГКИЙ ЛОК СКРОЛЛА
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'none'; 
     } else {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
-      window.scrollTo(0, scrollPositionRef.current);
+      document.body.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -115,12 +123,14 @@ export default function OrderModal({
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+      
+      // Возвращаем цвета обратно при закрытии
+      document.documentElement.style.backgroundColor = originalHtmlBg;
+      if (metaThemeColor && originalThemeColor) {
+        metaThemeColor.setAttribute('content', originalThemeColor);
+      }
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
@@ -279,9 +289,9 @@ export default function OrderModal({
             initial="initial"
             animate="animate"
             exit="exit"
-            // ВМЕСТО ФИЛЛЕРА: добавляем paddingBottom к самой стеклянной модалке
             style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-            className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background/85 backdrop-blur-md shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
+            // Убрали стекло (bg-background/85 backdrop-blur-md) -> сделали сплошной bg-background
+            className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div 

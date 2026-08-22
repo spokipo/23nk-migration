@@ -58,7 +58,6 @@ interface GalleryModalProps {
 
 export default function GalleryModal({ selectedReview, onClose }: GalleryModalProps) {
   const { toast } = useToast();
-  const scrollPositionRef = useRef(0);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmittedSuccess, setIsSubmittedSuccess] = useState(false);
@@ -99,33 +98,45 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // ИДЕАЛЬНЫЙ ЛОК СКРОЛЛА
+  // СОВРЕМЕННЫЙ ЛОК СКРОЛЛА (БЕЗ СДВИГА СТРАНИЦЫ) + ФИКС SAFE AREA
   useEffect(() => {
-    if (selectedReview || isFullscreenZoom) {
-      scrollPositionRef.current = window.scrollY;
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollPositionRef.current}px`;
-      document.body.style.left = '0';
-      document.body.style.right = '0';
-      document.body.style.width = '100%';
-      document.documentElement.style.overflow = 'hidden';
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    let originalHtmlBg = '';
+    let originalThemeColor = '';
+
+    if (selectedReview || isFullscreenZoom) { 
+      // 1. Фикс для Safari: синхронизируем цвета, чтобы убрать нижний шов
+      originalHtmlBg = document.documentElement.style.backgroundColor;
+      if (metaThemeColor) {
+        originalThemeColor = metaThemeColor.getAttribute('content') || '';
+      } else {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      
+      const computedBgColor = getComputedStyle(document.body).backgroundColor;
+      document.documentElement.style.backgroundColor = computedBgColor;
+      metaThemeColor.setAttribute('content', computedBgColor);
+
+      // 2. МЯГКИЙ ЛОК СКРОЛЛА (Без position: fixed)
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'none'; 
+      
     } else {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
-      window.scrollTo(0, scrollPositionRef.current);
+      document.body.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
     }
 
     return () => {
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.left = '';
-      document.body.style.right = '';
-      document.body.style.width = '';
-      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.documentElement.style.overscrollBehavior = '';
+      
+      // Возвращаем цвета обратно при закрытии
+      document.documentElement.style.backgroundColor = originalHtmlBg;
+      if (metaThemeColor && originalThemeColor) {
+        metaThemeColor.setAttribute('content', originalThemeColor);
+      }
     };
   }, [selectedReview, isFullscreenZoom]);
 
@@ -338,12 +349,13 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
               exit="exit"
               className="absolute top-0 bottom-0 left-0 right-0 z-10 flex flex-col overflow-hidden bg-background sm:relative sm:inset-auto sm:max-h-[90%] sm:w-full sm:max-w-2xl sm:rounded-2xl sm:border sm:border-foreground/15 sm:shadow-2xl"
             >
+              {/* === ЧИСТАЯ КРУГЛАЯ КНОПКА "НАЗАД" ДЛЯ МОБИЛОК === */}
               <button
                 onClick={handleCloseReview}
-                className="absolute left-4 top-4 z-30 flex items-center gap-1.5 rounded-full px-5 py-2.5 transition-all border backdrop-blur-md bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95 sm:hidden"
+                className="absolute left-4 top-4 z-30 flex items-center justify-center rounded-full p-2.5 transition-all border bg-background text-foreground/80 border-foreground/10 shadow-sm hover:bg-muted sm:hidden"
+                aria-label="Back"
               >
-                <ChevronLeft className="h-4 w-4" />
-                <span className="font-heading text-[11px] sm:text-xs uppercase tracking-widest text-foreground">Back</span>
+                <ChevronLeft className="h-5 w-5" />
               </button>
 
               <button
@@ -354,7 +366,6 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
                 <X className="h-4 w-4" />
               </button>
 
-              {/* ВМЕСТО ФИЛЛЕРА: добавляем отступ к скролл-контейнеру */}
               <div 
                 className="flex w-full flex-1 flex-col overflow-y-auto overscroll-none sm:flex-row sm:overflow-hidden pb-[5vh] sm:pb-0"
                 style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
@@ -364,7 +375,7 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
                   onClick={handleOpenZoom}
                 >
                   {isZoomPreparing && (
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/10 backdrop-blur-sm transition-opacity">
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/50 transition-opacity">
                       <LoadingSpinner />
                     </div>
                   )}
@@ -429,9 +440,9 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
               initial="initial"
               animate="animate"
               exit="exit"
-              // ВМЕСТО ФИЛЛЕРА: добавляем paddingBottom к самой модалке
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-              className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background/85 backdrop-blur-md shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
+              // Сплошной фон шторки
+              className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
               onMouseDown={(e) => e.stopPropagation()}
             >
               <div 

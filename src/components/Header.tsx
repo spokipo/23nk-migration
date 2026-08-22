@@ -142,7 +142,7 @@ export default function Header() {
                           className="absolute top-full left-1/2 pt-4 w-56 z-50"
                         >
                           {/* ИСПРАВЛЕНИЕ: bg-background (сплошной цвет без стекла) и глубокая тень */}
-                          <div className="bg-background border border-foreground/10 rounded-2xl shadow-2xl py-3 flex flex-col overflow-hidden">
+                          <div className="bg-background bg-gradient-to-b from-foreground/5 to-transparent border border-foreground/10 border-t-foreground/20 rounded-2xl shadow-2xl py-3 flex flex-col overflow-hidden">
                             <Link to="/catalog" className="px-6 py-2.5 font-heading text-[11px] uppercase tracking-widest text-foreground/80 hover:text-foreground hover:bg-foreground/5 transition-colors">
                               All Products
                             </Link>

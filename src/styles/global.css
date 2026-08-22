@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* === КРАСИМ ВЕСЬ ФОН И ЗАДАЕМ БАЗОВЫЙ ЦВЕТ ТЕКСТА === */
+@layer base {
+  html, body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
 /* Запрещаем странице дергаться при исчезновении скроллбара в Select/Modal */
 html {
   scrollbar-gutter: stable;
