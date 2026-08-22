@@ -17,10 +17,9 @@ import { sendOrderNotification } from '@/integrations/notifications';
 import { Country, State, City } from 'country-state-city';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CheckCircle2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
-// Полный список стран доставки Nova Poshta Global (ISO Alpha-2 коды)
 const NOVA_POSHTA_COUNTRIES = [
   'AT', 'UA',  'AL', 'AD', 'BE', 'BG', 'BA', 'VA', 'GB', 'GR', 'GI', 'DK', 'EE', 'IE', 'IS', 'ES', 'IT', 'CY', 'LV', 'LT', 'LI', 'LU', 'MT', 'MD', 'MC', 'NL', 'DE', 'NO', 'MK', 'PL', 'PT', 'RO', 'SM', 'RS', 'SK', 'SI', 'TR', 'CZ', 'ME', 'HU', 'FI', 'FR', 'HR', 'CH', 'SE',
   'US', 'CA', 'CN', 'HK',
@@ -48,6 +47,7 @@ export default function OrderModal({
   modalMode,
 }: OrderModalProps) {
   const { toast } = useToast();
+  const scrollPositionRef = useRef(0);
 
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -87,21 +87,40 @@ export default function OrderModal({
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
+  // Железобетонный лок скролла
   useEffect(() => {
-    if (!isOpen) return;
+    if (isOpen) {
+      scrollPositionRef.current = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollPositionRef.current}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
+      window.scrollTo(0, scrollPositionRef.current);
+    }
 
-    const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         handleClose();
       }
     };
-
-    document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
@@ -136,7 +155,6 @@ export default function OrderModal({
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Генерируем короткий красивый артикул из _id для удобства
     const article = product._id ? product._id.slice(-6).toUpperCase() : 'UNKNOWN';
 
     try {
@@ -155,7 +173,7 @@ export default function OrderModal({
         messageContent = [
           `ORDER REQUEST (In-Stock Piece)`,
           `Product: ${product.name}`,
-          `SKU/ID: #${article} (Full ID: ${product._id})`, // <-- Скрытый тег добавлен сюда!
+          `SKU/ID: #${article} (Full ID: ${product._id})`,
           `Price: $${product.price?.toFixed(2)}`,
           `----------------------------------------`,
           `SHIPPING DETAILS:`,
@@ -175,7 +193,7 @@ export default function OrderModal({
         messageContent = [
           `CUSTOM ORDER REQUEST`,
           `Product: ${product.name}`,
-          `Reference SKU: #${article} (Full ID: ${product._id})`, // <-- И сюда для кастома
+          `Reference SKU: #${article} (Full ID: ${product._id})`,
           `Country: ${formData.country}`,
           `----------------------------------------`,
           `Additional Notes: ${formData.message}`,
@@ -189,7 +207,7 @@ export default function OrderModal({
         preferredContactMethod: preferredContact,
         contactDetails: contactDet,
         message: messageContent,
-        selectedCorset: `${product.name} (SKU: #${article})`, // <-- Добавлен в базу данных Wix
+        selectedCorset: `${product.name} (SKU: #${article})`,
       };
 
       await BaseCrudService.create('contactformsubmissions', submission);
@@ -197,7 +215,7 @@ export default function OrderModal({
       if (modalMode === 'claim') {
         await sendOrderNotification({
           title: '🛍️ NEW ORDER (In-Stock) - Awaiting Payment',
-          productName: `${product.name} (SKU: #${article})`, // <-- Добавлен в Telegram/Email уведомление
+          productName: `${product.name} (SKU: #${article})`,
           price: product.price,
           formData: formData,
         });
@@ -225,26 +243,29 @@ export default function OrderModal({
 
   if (!mounted) return null;
 
+  // Идеальная анимация (без пружин и отскоков)
   const modalAnimationVariants: any = isMobile
     ? {
         initial: { y: '100%', opacity: 1 },
-        animate: { y: 0, opacity: 1 },
-        exit: { y: '100%', opacity: 1 },
-        transition: { type: 'spring', damping: 28, stiffness: 300 },
+        animate: { y: 0, opacity: 1, transition: { type: 'tween', duration: 0.35, ease: 'easeOut' } },
+        exit: { y: '100%', opacity: 1, transition: { type: 'tween', duration: 0.3, ease: 'easeIn' } },
       }
     : {
         initial: { opacity: 0, scale: 0.95, y: 10 },
-        animate: { opacity: 1, scale: 1, y: 0 },
-        exit: { opacity: 0, scale: 0.95, y: 10 },
-        transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1]},
+        animate: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.25, ease: 'easeOut' } },
+        exit: { opacity: 0, scale: 0.95, y: 10, transition: { duration: 0.2, ease: 'easeIn' } },
       };
 
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4 font-paragraph text-foreground">
+        <div 
+          style={{ position: 'fixed', top: 0, bottom: 0, left: 0, right: 0, zIndex: 100 }} 
+          className="flex flex-col justify-end sm:items-center sm:justify-center sm:p-4 font-paragraph text-foreground"
+        >
           <motion.div
-            className="fixed inset-0 bg-black/50 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
+            style={{ touchAction: 'none' }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -255,23 +276,33 @@ export default function OrderModal({
           <motion.div
             role="dialog"
             aria-modal="true"
-            {...modalAnimationVariants}
-            className="relative z-10 flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/15 bg-background shadow-2xl sm:max-h-[85vh] sm:max-w-[540px] sm:rounded-2xl"
+            variants={modalAnimationVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            // Дизайн пилюль (стекло, прозрачность 85, тонкая рамка)
+            className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background/85 backdrop-blur-md shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            <div className="flex w-full shrink-0 justify-center pt-3 pb-1 sm:hidden">
+            {/* Полоска-свайп для мобилок */}
+            <div 
+              className="flex w-full shrink-0 justify-center pt-3 pb-3 sm:hidden"
+              onClick={handleClose}
+            >
               <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
             </div>
 
+            {/* Крестик виден ТОЛЬКО на десктопе */}
             <button
               onClick={handleClose}
               className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
               aria-label="Close form"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
-            <div className="modal-scrollbar flex-1 overflow-y-auto p-5 sm:p-7">
+            {/* Никаких pb-40/48, только аккуратные отступы */}
+            <div className="modal-scrollbar flex-1 overflow-y-auto overscroll-contain p-5 pb-6 sm:p-7 sm:pb-7">
               <AnimatePresence mode="wait">
                 {isSubmittedSuccess ? (
                   <motion.div
@@ -325,15 +356,23 @@ export default function OrderModal({
                       </p>
                     </div>
 
-                    <div className="p-3 bg-ivory rounded-xl flex gap-3 items-center border border-foreground/10 mb-4">
-                      <Image src={product.mainImage || ''} alt={product.name} width={56} className="w-12 h-12 object-cover rounded-lg shrink-0" />
+                    <div className="p-3 bg-foreground/5 rounded-xl flex gap-3 items-center border border-foreground/10 mb-4">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-sm">
+                        <Image
+                          src={product.mainImage || ''}
+                          alt={product.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
                       <div>
-                        <p className="font-heading text-xs sm:text-sm text-foreground font-semibold">{product.name}</p>
+                        <p className="font-heading text-xs sm:text-sm text-foreground font-semibold line-clamp-1">{product.name}</p>
                         <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">${product.price?.toFixed(2)}</p>
                       </div>
                     </div>
 
-                    <form id="order-form" onSubmit={handleSubmit} className="space-y-3.5 pb-4">
+                    <form id="order-form" onSubmit={handleSubmit} className="space-y-3.5 pb-2">
                       {modalMode === 'claim' ? (
                         <>
                           <div>
@@ -361,7 +400,7 @@ export default function OrderModal({
                                 <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg">
                                   <SelectValue placeholder="Select Country..." />
                                 </SelectTrigger>
-                                <SelectContent className="z-[110] max-h-60">
+                                <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
                                   {Country.getAllCountries()
                                     .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
                                     .map((c) => (
@@ -391,7 +430,7 @@ export default function OrderModal({
                                   <SelectTrigger id="stateRegion" className="font-heading text-base sm:text-sm rounded-lg">
                                     <SelectValue placeholder="Select State..." />
                                   </SelectTrigger>
-                                  <SelectContent className="z-[110] max-h-60">
+                                  <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
                                     {availableStates.map((s) => (
                                       <SelectItem key={s.isoCode} value={s.isoCode}>
                                         {s.name}
@@ -426,7 +465,7 @@ export default function OrderModal({
                                   <SelectTrigger id="city" className="font-heading text-base sm:text-sm rounded-lg">
                                     <SelectValue placeholder="Select City..." />
                                   </SelectTrigger>
-                                  <SelectContent className="z-[110] max-h-60">
+                                  <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
                                     {availableCities.map((c, index) => (
                                       <SelectItem key={`${c.name}-${index}`} value={c.name}>
                                         {c.name}
@@ -510,7 +549,7 @@ export default function OrderModal({
                               <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg">
                                 <SelectValue placeholder="Select Country..." />
                               </SelectTrigger>
-                              <SelectContent className="z-[110] max-h-60">
+                              <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
                                 {Country.getAllCountries()
                                   .filter((c) => c.isoCode !== 'RU' && c.isoCode !== 'BY')
                                   .map((c) => (
@@ -554,13 +593,6 @@ export default function OrderModal({
                         >
                           {isSubmitting ? 'Sending...' : modalMode === 'claim' ? 'Place Order' : 'Submit Request'}
                         </Button>
-                        <button
-                          type="button"
-                          onClick={handleClose}
-                          className="w-full text-center font-heading text-xs text-foreground/50 hover:text-foreground py-2 transition-colors"
-                        >
-                          Close
-                        </button>
                       </div>
                     </form>
                   </motion.div>

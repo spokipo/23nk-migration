@@ -11,10 +11,10 @@ export default function DeliveryPage() {
       content: (
         <div className="space-y-3 font-paragraph text-xs sm:text-sm text-foreground/80 leading-relaxed">
           <p>
-            <strong className="font-heading text-foreground">In-Stock Orders:</strong> Ready-to-ship corsets are processed and packaged within <strong>1–3 business days</strong>.
+            <strong className="font-heading text-foreground">Ready-to-Ship Orders:</strong> Processed and packaged within <strong>1–3 business days</strong>.
           </p>
           <p>
-            <strong className="font-heading text-foreground">Made-to-Order:</strong> Corsets tailored to individual measurements require <strong>10–14 business days</strong> for handcrafted production before dispatch.
+            <strong className="font-heading text-foreground">Custom Orders:</strong> Corsets tailored to individual measurements require <strong>5–10 business days</strong> for handcrafted production before dispatch.
           </p>
         </div>
       )

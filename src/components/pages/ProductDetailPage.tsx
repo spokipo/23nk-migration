@@ -486,7 +486,7 @@ export default function ProductDetailPage() {
                           </strong>
                           <p className="font-paragraph text-xs md:text-sm text-foreground/80">
                             {product.sizing ||
-                              'Custom sizing available on request, tailored to your exact measurements.'}
+                              'The corset will be made according to your bust and waist measurements.'}
                           </p>
                         </div>
                       </motion.div>
@@ -523,8 +523,7 @@ export default function ProductDetailPage() {
                           </p>
                         )}
                         <p>
-                          <strong className="font-heading text-foreground">Care:</strong> Dry
-                          clean or gentle spot clean only. Do not machine wash.
+                          <strong className="font-heading text-foreground">Care:</strong> Care instructions for preserving the appearance of your corset can be found in the leaflet included with every corset.
                         </p>
                       </motion.div>
                     )}
