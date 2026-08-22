@@ -13,6 +13,13 @@ const getReviewImage = (review: any) => {
   return typeof rawImage === 'object' && rawImage !== null ? rawImage.url || rawImage.src || '' : rawImage;
 };
 
+// Делает из "New Collection" красивую ссылку "new-collection"
+const getCollectionSlug = (collection: any) => {
+  if (collection.slug) return collection.slug;
+  if (collection.handle) return collection.handle;
+  return collection.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+};
+
 export default function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState<Products[]>([]);
@@ -101,10 +108,15 @@ export default function CatalogPage() {
     if (activeFilter === 'all') return products;
     if (activeFilter === 'ready-to-ship') return products.filter(p => p.inStock === true);
 
+    // Ищем настоящую коллекцию по её красивой ссылке из URL
+    const targetCollection = collections.find(c => getCollectionSlug(c) === activeFilter);
+    // Если нашли - берем её уродливый _id для фильтрации, если нет - используем как есть
+    const targetId = targetCollection ? targetCollection._id : activeFilter;
+
     return products.filter((product: any) => {
       if (!product.Collections || !Array.isArray(product.Collections)) return false;
       return product.Collections.some((col: any) => {
-        return typeof col === 'object' && col !== null ? col._id === activeFilter : col === activeFilter;
+        return typeof col === 'object' && col !== null ? col._id === targetId : col === targetId;
       });
     });
   };
@@ -122,13 +134,11 @@ export default function CatalogPage() {
           {!loading && products.length > 0 && (
             <motion.div
               // top-[72px] дает ровно 8px зазора от мобильного хедера (который 64px)
-              // top-[112px] дает 16px зазора от десктопного хедера (который 96px)
-              className="sticky top-[72px] md:top-[112px] z-40 mb-6 md:mb-12 pointer-events-none md:pointer-events-auto"
+              // top-[96px] делает стык встык с десктопным хедером (который 96px)
+              className="sticky top-[72px] md:top-[96px] z-40 mb-6 md:mb-12 pointer-events-none md:pointer-events-auto md:bg-background/85 md:backdrop-blur-md md:-mx-20 md:px-20 md:py-1"
               animate={{
-                // Поднимаем пилюли ровно на высоту хедера, когда он прячется
                 y: isHeaderHidden ? (isMobile ? -64 : -96) : 0
               }}
-              // Время анимации (0.3s) совпадает с хедером пиксель-в-пиксель
               transition={{ duration: 0.3, ease: 'easeInOut' }}
             >
               {/* Мобильная лента (Стеклянная, как хедер) */}
@@ -153,58 +163,92 @@ export default function CatalogPage() {
                 >
                   Ready to Ship
                 </button>
-                {collections.map(collection => (
-                  <button
-                    key={collection._id}
-                    onClick={() => handleFilterChange(collection._id)}
-                    className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border backdrop-blur-md ${
-                      activeFilter === collection._id
-                        ? 'bg-foreground text-background border-transparent shadow-md'
-                        : 'bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95'
-                    }`}
-                  >
-                    {collection.name}
-                  </button>
-                ))}
-                <div className="w-px shrink-0"></div>
-              </div>
-
-              {/* Десктопная лента */}
-              <div className="hidden md:flex justify-center items-center pointer-events-auto">
-                <div className="flex gap-4 flex-nowrap">
-                  <button
-                    onClick={() => handleFilterChange('all')}
-                    className={`px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${
-                      activeFilter === 'all'
-                        ? 'text-foreground border-b-2 border-soft-gold font-semibold'
-                        : 'text-foreground/60 border-b-2 border-transparent hover:text-foreground'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => handleFilterChange('ready-to-ship')}
-                    className={`px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${
-                      activeFilter === 'ready-to-ship'
-                        ? 'text-foreground border-b-2 border-soft-gold font-semibold'
-                        : 'text-foreground/60 border-b-2 border-transparent hover:text-foreground'
-                    }`}
-                  >
-                    Ready to Ship
-                  </button>
-                  {collections.map(collection => (
+                
+                {/* Отрендеренные мобильные коллекции со слагами */}
+                {collections.map(collection => {
+                  const slug = getCollectionSlug(collection);
+                  return (
                     <button
                       key={collection._id}
-                      onClick={() => handleFilterChange(collection._id)}
-                      className={`px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-all duration-300 ${
-                        activeFilter === collection._id
-                          ? 'text-foreground border-b-2 border-soft-gold font-semibold'
-                          : 'text-foreground/60 border-b-2 border-transparent hover:text-foreground'
+                      onClick={() => handleFilterChange(slug)}
+                      className={`whitespace-nowrap px-5 py-2.5 font-heading text-[11px] sm:text-xs uppercase tracking-wider rounded-full transition-all border backdrop-blur-md ${
+                        activeFilter === slug
+                          ? 'bg-foreground text-background border-transparent shadow-md'
+                          : 'bg-background/85 text-foreground/80 border-foreground/10 shadow-sm hover:bg-background/95'
                       }`}
                     >
                       {collection.name}
                     </button>
-                  ))}
+                  );
+                })}
+                <div className="w-px shrink-0"></div>
+              </div>
+
+              {/* Десктопная лента (Сплошная панель с перетекающей линией) */}
+              <div className="hidden md:flex justify-center items-center pointer-events-auto">
+                <div className="flex gap-4 flex-nowrap">
+                  
+                  <button
+                    onClick={() => handleFilterChange('all')}
+                    className={`relative px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-colors duration-300 ${
+                      activeFilter === 'all'
+                        ? 'text-foreground font-semibold'
+                        : 'text-foreground/60 hover:text-foreground'
+                    }`}
+                  >
+                    All
+                    {activeFilter === 'all' && (
+                      <motion.div
+                        layoutId="activeFilterIndicator"
+                        className="absolute left-0 right-0 bottom-0 h-[2px] bg-soft-gold"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => handleFilterChange('ready-to-ship')}
+                    className={`relative px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-colors duration-300 ${
+                      activeFilter === 'ready-to-ship'
+                        ? 'text-foreground font-semibold'
+                        : 'text-foreground/60 hover:text-foreground'
+                    }`}
+                  >
+                    Ready to Ship
+                    {activeFilter === 'ready-to-ship' && (
+                      <motion.div
+                        layoutId="activeFilterIndicator"
+                        className="absolute left-0 right-0 bottom-0 h-[2px] bg-soft-gold"
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      />
+                    )}
+                  </button>
+
+                  {/* Отрендеренные ПК коллекции со слагами */}
+                  {collections.map(collection => {
+                    const slug = getCollectionSlug(collection);
+                    return (
+                      <button
+                        key={collection._id}
+                        onClick={() => handleFilterChange(slug)}
+                        className={`relative px-6 py-3 font-heading text-sm uppercase tracking-wider whitespace-nowrap transition-colors duration-300 ${
+                          activeFilter === slug
+                            ? 'text-foreground font-semibold'
+                            : 'text-foreground/60 hover:text-foreground'
+                        }`}
+                      >
+                        {collection.name}
+                        {activeFilter === slug && (
+                          <motion.div
+                            layoutId="activeFilterIndicator"
+                            className="absolute left-0 right-0 bottom-0 h-[2px] bg-soft-gold"
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                  
                 </div>
               </div>
             </motion.div>

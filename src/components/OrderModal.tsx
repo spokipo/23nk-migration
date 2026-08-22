@@ -243,7 +243,6 @@ export default function OrderModal({
 
   if (!mounted) return null;
 
-  // Идеальная анимация (без пружин и отскоков)
   const modalAnimationVariants: any = isMobile
     ? {
         initial: { y: '100%', opacity: 1 },
@@ -280,11 +279,11 @@ export default function OrderModal({
             initial="initial"
             animate="animate"
             exit="exit"
-            // Дизайн пилюль (стекло, прозрачность 85, тонкая рамка)
+            // ВМЕСТО ФИЛЛЕРА: добавляем paddingBottom к самой стеклянной модалке
+            style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background/85 backdrop-blur-md shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* Полоска-свайп для мобилок */}
             <div 
               className="flex w-full shrink-0 justify-center pt-3 pb-3 sm:hidden"
               onClick={handleClose}
@@ -292,7 +291,6 @@ export default function OrderModal({
               <div className="h-1.5 w-10 rounded-full bg-foreground/20" />
             </div>
 
-            {/* Крестик виден ТОЛЬКО на десктопе */}
             <button
               onClick={handleClose}
               className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
@@ -301,7 +299,6 @@ export default function OrderModal({
               <X className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
 
-            {/* Никаких pb-40/48, только аккуратные отступы */}
             <div className="modal-scrollbar flex-1 overflow-y-auto overscroll-contain p-5 pb-6 sm:p-7 sm:pb-7">
               <AnimatePresence mode="wait">
                 {isSubmittedSuccess ? (
@@ -357,15 +354,7 @@ export default function OrderModal({
                     </div>
 
                     <div className="p-3 bg-foreground/5 rounded-xl flex gap-3 items-center border border-foreground/10 mb-4">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg shadow-sm">
-                        <Image
-                          src={product.mainImage || ''}
-                          alt={product.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-
+                      <Image src={product.mainImage || ''} alt={product.name} width={56} className="w-12 h-12 object-cover rounded-lg shrink-0 shadow-sm" />
                       <div>
                         <p className="font-heading text-xs sm:text-sm text-foreground font-semibold line-clamp-1">{product.name}</p>
                         <p className="font-heading text-xs text-soft-gold font-bold mt-0.5">${product.price?.toFixed(2)}</p>
@@ -400,7 +389,7 @@ export default function OrderModal({
                                 <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg">
                                   <SelectValue placeholder="Select Country..." />
                                 </SelectTrigger>
-                                <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
+                                <SelectContent className="z-[110] max-h-60">
                                   {Country.getAllCountries()
                                     .filter((c) => NOVA_POSHTA_COUNTRIES.includes(c.isoCode))
                                     .map((c) => (
@@ -430,7 +419,7 @@ export default function OrderModal({
                                   <SelectTrigger id="stateRegion" className="font-heading text-base sm:text-sm rounded-lg">
                                     <SelectValue placeholder="Select State..." />
                                   </SelectTrigger>
-                                  <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
+                                  <SelectContent className="z-[110] max-h-60">
                                     {availableStates.map((s) => (
                                       <SelectItem key={s.isoCode} value={s.isoCode}>
                                         {s.name}
@@ -465,7 +454,7 @@ export default function OrderModal({
                                   <SelectTrigger id="city" className="font-heading text-base sm:text-sm rounded-lg">
                                     <SelectValue placeholder="Select City..." />
                                   </SelectTrigger>
-                                  <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
+                                  <SelectContent className="z-[110] max-h-60">
                                     {availableCities.map((c, index) => (
                                       <SelectItem key={`${c.name}-${index}`} value={c.name}>
                                         {c.name}
@@ -549,7 +538,7 @@ export default function OrderModal({
                               <SelectTrigger id="country" className="font-heading text-base sm:text-sm rounded-lg">
                                 <SelectValue placeholder="Select Country..." />
                               </SelectTrigger>
-                              <SelectContent className="z-[110] max-h-60" position="popper" sideOffset={4}>
+                              <SelectContent className="z-[110] max-h-60">
                                 {Country.getAllCountries()
                                   .filter((c) => c.isoCode !== 'RU' && c.isoCode !== 'BY')
                                   .map((c) => (

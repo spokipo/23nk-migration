@@ -102,12 +102,12 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (product?.name) {
-      document.title = `I23NK | ${product.name}`;
+      document.title = `${product.name} | I23NK`;
     } else {
-      document.title = 'I23NK | Custom Upcycled Corsets';
+      document.title = 'Upcycled Corsets | I23NK';
     }
     return () => {
-      document.title = 'I23NK | Pieces with a history, tailored for the future';
+      document.title = 'Upcycled Corsets | I23NK';
     };
   }, [product?.name]);
 

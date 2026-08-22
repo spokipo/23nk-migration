@@ -336,7 +336,6 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
               initial="initial"
               animate="animate"
               exit="exit"
-              // ВЕРНУЛ overflow-hidden сюда, чтобы фото не вылазило за скругления
               className="absolute top-0 bottom-0 left-0 right-0 z-10 flex flex-col overflow-hidden bg-background sm:relative sm:inset-auto sm:max-h-[90%] sm:w-full sm:max-w-2xl sm:rounded-2xl sm:border sm:border-foreground/15 sm:shadow-2xl"
             >
               <button
@@ -355,7 +354,11 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
                 <X className="h-4 w-4" />
               </button>
 
-              <div className="flex w-full flex-1 flex-col overflow-y-auto overscroll-none sm:flex-row sm:overflow-hidden pb-[5vh] sm:pb-0">
+              {/* ВМЕСТО ФИЛЛЕРА: добавляем отступ к скролл-контейнеру */}
+              <div 
+                className="flex w-full flex-1 flex-col overflow-y-auto overscroll-none sm:flex-row sm:overflow-hidden pb-[5vh] sm:pb-0"
+                style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+              >
                 <div
                   className="group relative aspect-[3/4] w-full shrink-0 cursor-zoom-in overflow-hidden bg-ivory/50 sm:w-1/2"
                   onClick={handleOpenZoom}
@@ -426,6 +429,8 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
               initial="initial"
               animate="animate"
               exit="exit"
+              // ВМЕСТО ФИЛЛЕРА: добавляем paddingBottom к самой модалке
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
               className="relative z-10 flex max-h-[90%] w-full flex-col overflow-hidden rounded-t-[24px] border border-foreground/10 bg-background/85 backdrop-blur-md shadow-sm sm:max-h-[90%] sm:max-w-[540px] sm:rounded-2xl"
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -441,7 +446,7 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
                 className="absolute right-4 top-4 z-30 hidden rounded-full bg-black/10 p-2 text-foreground transition-colors hover:bg-black/20 sm:block"
                 aria-label="Close form"
               >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
+                <X className="h-4 w-4" />
               </button>
 
               <div className="modal-scrollbar flex-1 overflow-y-auto overscroll-contain p-5 pb-6 sm:p-7 sm:pb-7">
