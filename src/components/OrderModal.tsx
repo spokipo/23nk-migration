@@ -181,7 +181,7 @@ export default function OrderModal({
               : formData.contactDetails;
 
         messageContent = [
-          `ORDER REQUEST (In-Stock Piece)`,
+          `ORDER REQUEST (Ready-to-ship)`,
           `Product: ${product.name}`,
           `SKU/ID: #${article} (Full ID: ${product._id})`,
           `Price: $${product.price?.toFixed(2)}`,
@@ -224,7 +224,7 @@ export default function OrderModal({
 
       if (modalMode === 'claim') {
         await sendOrderNotification({
-          title: '🛍️ NEW ORDER (In-Stock) - Awaiting Payment',
+          title: '🛍️ NEW ORDER (Ready-to-ship) - Awaiting Payment',
           productName: `${product.name} (SKU: #${article})`,
           price: product.price,
           formData: formData,

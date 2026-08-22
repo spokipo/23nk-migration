@@ -283,7 +283,7 @@ export default function GalleryModal({ selectedReview, onClose }: GalleryModalPr
       await BaseCrudService.create('contactformsubmissions', submission);
 
       await sendOrderNotification({
-        title: 'Gallery Custom Remake Request',
+        title: '✨ Gallery Custom Order Request',
         productName: productName,
         formData: formData,
       });
